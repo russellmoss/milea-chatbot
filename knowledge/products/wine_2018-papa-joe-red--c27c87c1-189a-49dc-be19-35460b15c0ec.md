@@ -1,0 +1,18 @@
+# 2018 Papa Joe Red.
+
+## Product Information
+- **Type**: Wine
+- **Price**: $25.00
+- **Status**: Available / Not Available
+- **Created**: 6/20/2022
+- **Updated**: 6/15/2024
+
+## Description
+<p><strong>Wine information</strong></p>
+<p>This wine is an homage to Joseph Milea, our founder's father.&nbsp; Joe was an approachable and gregarious man.&nbsp; Our winemakers seek to capture Joe's soulful esscence in this offering.&nbsp; The Papa Joe Red is primarily made from Heritage grapes that have a long history of use in New York and the Hudson Valley.&nbsp; The result is an extremly approachable wine that has aromas of cherries and raspberries with a moderate acidity and supple tannins.&nbsp; No matter where you go, if you bring Papa Joe, you'll be the life of the party.&nbsp;</p>
+
+## Quick Overview
+An homage to our founders' father.  This inviting wine is a versatile red blend with aromas of cherry, raspberry and supple tannins.
+
+## Details
+No additional details available.
