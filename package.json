@@ -1,0 +1,25 @@
+{
+  "name": "milea-chatbot",
+  "version": "1.0.0",
+  "description": "Milea Estate Vineyard Chatbot",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "body-parser": "^1.20.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.0.3",
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.2",
+    "openai": "^4.86.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.9"
+  }
+}
