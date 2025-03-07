@@ -3,6 +3,30 @@
 
 const logger = require('../../utils/logger');
 
+// In services/rag/queryClassifier.js, add this function:
+
+/**
+ * Check if a query is loyalty program related
+ * @param {string} query - Lowercase user query
+ * @returns {boolean} - Whether the query is about the loyalty program
+ */
+function isLoyaltyProgramQuery(query) {
+    // Common terms related to loyalty program
+    const loyaltyTerms = [
+      'milea miles', 'miles', 'loyalty', 'rewards', 'points', 'reward', 
+      'redeem', 'earn points', 'point system', 'rewards program'
+    ];
+    
+    return loyaltyTerms.some(term => query.includes(term));
+  }
+  
+  // Then update the classifyQuery function to include loyalty detection:
+  function classifyQuery(query) {
+    const queryLower = query.toLowerCase();
+    
+  }
+  
+
 /**
  * Classify a query into its domain and subtype with stricter validation
  * @param {string} query - User's query
@@ -21,7 +45,31 @@ function classifyQuery(query) {
       wineTerms: []
     };
   }
+
+  // Add this right after the wine club check:
+    // Check if this is a loyalty program related query
+    if (isLoyaltyProgramQuery(queryLower)) {
+        logger.info(`Loyalty program query detected: "${query}"`);
+        return {
+          type: 'loyalty',
+          subtype: 'general',
+          isSpecificWine: false,
+          wineTerms: []
+        };
+      }
   
+  
+  // Check if this is a wine production related query
+  if (iswineProductionQuery(queryLower)) {
+    logger.info(`Wine Production query detected: "${query}"`);
+    return {
+      type: 'wine_production',
+      subtype: 'general',
+      isSpecificWine: false,
+      wineTerms: []
+    };
+  }
+
   // Check if this is a visiting-related query
   if (isVisitingQuery(queryLower)) {
     const visitingSubtype = classifyVisitingQueryType(queryLower);
@@ -200,11 +248,31 @@ function isMerchandiseQuery(query) {
   return merchandiseTerms.some(term => query.includes(term));
 }
 
+
+/**
+ * Check if a query is wine production related
+ * @param {string} query - Lowercase user query
+ * @returns {boolean} - Whether the query is about wine production
+ */
+function iswineProductionQuery(query) {
+  // Common terms related to wine production
+  const wine_productionTerms = [
+    'wine production', 'wine production', 
+    // Add more relevant terms here
+  ];
+  
+  return wine_productionTerms.some(term => query.includes(term));
+}
+
 module.exports = {
+  iswineProductionQuery,
   classifyQuery,
   isWineClubQuery,
   isLikelyWineQuery,
   isVisitingQuery,
   classifyVisitingQueryType,
-  isMerchandiseQuery
+  isMerchandiseQuery,
+  isWineClubQuery,
+  isLoyaltyProgramQuery,
+  isLikelyWineQuery,
 };

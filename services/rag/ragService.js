@@ -12,6 +12,8 @@ const visitingHandler = require('./domains/visitingHandler');
 const clubHandler = require('./domains/clubHandler');
 const merchandiseHandler = require('./domains/merchandiseHandler');
 const generalHandler = require('./domains/generalHandler');
+const wine_productionHandler = require('./domains/wine_productionHandler');
+const loyaltyHandler = require('./domains/loyaltyHandler');
 
 /**
  * Main entry point for RAG response generation

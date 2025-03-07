@@ -1,5 +1,5 @@
 // services/rag/responseGenerator.js
-// Enhanced response generation with strict validation
+// Enhanced response generation with strict validation and dynamic domain handling
 
 const openai = require('../../config/openai');
 const logger = require('../../utils/logger');
@@ -137,18 +137,17 @@ function getWineListPrompt(knownWines) {
  * @returns {string} - Domain-specific prompt instructions
  */
 function getDomainSpecificInstructions(queryInfo) {
-  switch (queryInfo.type) {
-    case 'club':
-      return `
+  // Define standard domain instructions
+  const domainInstructions = {
+    'club': `
 For wine club queries, include:
 - Membership tier names and options
 - Number of bottles per shipment
 - Pricing information for each tier
 - Benefits and discounts
 - How to join the club
-`;
-    case 'wine':
-      return `
+`,
+    'wine': `
 For wine-related queries, include:
 - Description and tasting notes
 - Price information (ALWAYS include the price if it appears in the Product Information section)
@@ -162,9 +161,8 @@ IMPORTANT WINE GUIDANCE:
 3. The vintage year should be clearly stated at the beginning of your response (e.g., "The 2022 Reserve Cabernet Franc is...").
 4. DO NOT fabricate any wines that aren't in the context. Only discuss wines from the verified list.
 5. NEVER suggest a wine in "Did you mean?" unless it is on the verified list I provided above.
-`;
-    case 'visiting':
-      return `
+`,
+    'visiting': `
 For visiting-related queries, include:
 - Specific details such as times, addresses, and requirements
 - Clear instructions for visitors
@@ -176,23 +174,37 @@ ${queryInfo.subtype === 'visiting-reservations' ? 'Explain the reservation proce
 ${queryInfo.subtype === 'visiting-accommodations' ? 'List recommended accommodations with distances from the vineyard.' : ''}
 ${queryInfo.subtype === 'visiting-attractions' ? 'Describe local attractions and activities near the vineyard.' : ''}
 ${queryInfo.subtype === 'visiting-experiences' ? 'Detail the tasting experiences available, including pricing and what they include.' : ''}
-`;
-    case 'merchandise':
-      return `
+`,
+    'merchandise': `
 For merchandise queries, include:
 - Product descriptions
 - Pricing information when available
 - Any special features or materials
 - How to purchase these items
-`;
-    default:
-      return `
-Provide a clear, helpful response based on the context information. Include:
+`,
+    'loyalty': `
+For loyalty program queries, include:
+- Details about the Milea Miles program
+- How points are earned for different activities
+- Point values for different redemption options
+- Membership benefits and differences for wine club members
+- Any current promotions or limited-time offers
+`
+    // Add other domains here as needed
+  };
+  
+  // First check if we have specific instructions for this domain
+  if (domainInstructions[queryInfo.type]) {
+    return domainInstructions[queryInfo.type];
+  }
+  
+  // For unspecified domains, return generic instructions
+  return `
+Provide a clear, helpful response based on the context information about ${queryInfo.type.replace(/_/g, ' ')}. Include:
 - Relevant facts and details
 - Specific information addressing the user's query
 - Suggestions for related information they might find helpful
 `;
-  }
 }
 
 /**

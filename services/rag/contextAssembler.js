@@ -235,6 +235,22 @@ function calculateKeywordScore(source, content, queryTerms) {
  */
 function applyDomainScoring(score, doc, queryInfo, source, content) {
   let newScore = score;
+
+  // Loyalty program scoring boosts
+  if (queryInfo.type === 'loyalty') {
+    // Base boost for loyalty content
+    if (doc.metadata.contentType === 'loyalty' || 
+        source.includes('milea-miles') || 
+        source.includes('miles') ||
+        content.includes('Milea Miles')) {
+      newScore += 100;
+    }
+    
+    // Extra boost for files that are specifically about the loyalty program
+    if (source.includes('milea_miles')) {
+      newScore += 50;
+    }
+  }
   
   // Wine club scoring boosts
   if (queryInfo.type === 'club' && source.includes('wine-club')) {

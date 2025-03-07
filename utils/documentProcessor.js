@@ -53,6 +53,7 @@ function detectContentType(filePath) {
   
   // Recognized content types based on folder
   const folderToContentType = {
+    'wine_production': 'wine_production',
     'wine': 'wine',
     'visiting': 'visiting',
     'events': 'event',
@@ -60,7 +61,9 @@ function detectContentType(filePath) {
     'club': 'club',
     'about': 'about',
     'merchandise': 'merchandise',
-    'wine club': 'club'
+    'wine club': 'club',
+    'milea_miles': 'loyalty', 
+    'loyalty': 'loyalty' // And this one as a fallback
   };
   
   // Return the content type based on folder, or fallback to analysis
@@ -70,7 +73,13 @@ function detectContentType(filePath) {
   
   // Fallback: Check filename for content type hints
   const filename = path.basename(filePath).toLowerCase();
-  
+
+   if (filename.includes('milea-miles') || 
+      filename.includes('miles') || 
+      filename.includes('loyalty') || 
+      filename.includes('rewards')) {
+    return 'loyalty';
+  }
   if (filename.includes('wine') || filename.includes('tasting')) {
     return 'wine';
   } else if (
