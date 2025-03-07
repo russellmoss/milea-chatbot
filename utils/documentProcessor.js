@@ -53,6 +53,7 @@ function detectContentType(filePath) {
   
   // Recognized content types based on folder
   const folderToContentType = {
+    'sustainability': 'sustainability',
     'wine_production': 'wine_production',
     'wine': 'wine',
     'visiting': 'visiting',

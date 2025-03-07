@@ -1,6 +1,4 @@
 // services/rag/domains/sustainabilityHandler.js
-// Sustainability content handling
-
 const logger = require('../../../utils/logger');
 
 /**
@@ -14,14 +12,14 @@ async function handleQuery(query, queryInfo, context) {
   try {
     logger.info(`Processing sustainability query: "${query}"`);
     
-    // Check if we have sustainability-specific documents
-    const hasSustainabilityDocs = context.documents.some(doc => 
-      doc.metadata.source.toLowerCase().includes('sustain') ||
-      (doc.metadata.contentType === 'sustainability')
+    // Check if we have domain-specific documents
+    const hasDomainDocs = context.documents.some(doc => 
+      doc.metadata.source.toLowerCase().includes('sustainability') ||
+      doc.metadata.contentType === 'sustainability'
     );
     
-    if (!hasSustainabilityDocs) {
-      logger.warning('No sustainability-specific documents found for sustainability query');
+    if (!hasDomainDocs) {
+      logger.warning('No sustainability-specific documents found for query');
     }
     
     // For now, defer to the standard response generator

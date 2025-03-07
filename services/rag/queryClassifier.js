@@ -70,6 +70,18 @@ function classifyQuery(query) {
     };
   }
 
+  
+  // Check if this is a sustainability related query
+  if (issustainabilityQuery(queryLower)) {
+    logger.info(`Sustainability query detected: "${query}"`);
+    return {
+      type: 'sustainability',
+      subtype: 'general',
+      isSpecificWine: false,
+      wineTerms: []
+    };
+  }
+
   // Check if this is a visiting-related query
   if (isVisitingQuery(queryLower)) {
     const visitingSubtype = classifyVisitingQueryType(queryLower);
@@ -264,7 +276,24 @@ function iswineProductionQuery(query) {
   return wine_productionTerms.some(term => query.includes(term));
 }
 
+
+/**
+ * Check if a query is sustainability related
+ * @param {string} query - Lowercase user query
+ * @returns {boolean} - Whether the query is about sustainability
+ */
+function issustainabilityQuery(query) {
+  // Common terms related to sustainability
+  const sustainabilityTerms = [
+    'sustainability', 'sustainability', 
+    // Add more relevant terms here
+  ];
+  
+  return sustainabilityTerms.some(term => query.includes(term));
+}
+
 module.exports = {
+  issustainabilityQuery,
   iswineProductionQuery,
   classifyQuery,
   isWineClubQuery,

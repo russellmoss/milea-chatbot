@@ -49,6 +49,3 @@ Specially designed for larger parties wanting to experience Milea wines together
 - **Children**: Welcome on property, but must be supervised at all times
 - **Pets**: Well-behaved dogs on leash are permitted in outdoor areas only
 
-## Seasonal & Special Tastings
-
-Throughout the year, we offer limited-time seasonal tastings and special vertical tastings of library wines. Check our website or join our mailing list to stay informed about these unique opportunities.
