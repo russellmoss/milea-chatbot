@@ -1,7 +1,7 @@
 // routes/rag.js
 const express = require('express');
 const router = express.Router();
-const { generateRAGResponse } = require('../services/ragService');
+const { generateRAGResponse } = require('../services/rag/ragService');
 const logger = require('../utils/logger');
 
 router.post("/", async (req, res) => {

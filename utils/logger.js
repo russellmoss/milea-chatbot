@@ -1,4 +1,9 @@
 // utils/logger.js
+// Simple logging utility
+
+/**
+ * Simple logging utility with emoji indicators
+ */
 function log(type, message, data = null) {
     const timestamp = new Date().toISOString();
     const emoji = getEmoji(type);
@@ -9,6 +14,9 @@ function log(type, message, data = null) {
     }
   }
   
+  /**
+   * Get emoji for log type
+   */
   function getEmoji(type) {
     const emojis = {
       info: 'ℹ️',
@@ -36,4 +44,3 @@ function log(type, message, data = null) {
     db: (message, data) => log('db', message, data),
     wine: (message, data) => log('wine', message, data)
   };
-  

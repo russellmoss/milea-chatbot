@@ -45,11 +45,23 @@ C:\Users\russe\milea-chatbot\
 │   ├── syncCommerce7Products.js    (Fetch & store latest products)
 │   └── testRAG.js                  (Test RAG response generation)
 │
-├── services\                     (Business logic)
-│   ├── chatService.js              (Chat logic)
-│   ├── commerce7Service.js         (Commerce7 API interactions)
-│   └── ragService.js               (RAG functionality)
-│
+
+├── services/
+│   ├── rag/
+│   		├── index.js                     (Main export point for the RAG service)
+│   		├── ragService.js                (Core RAG service with shared functionality)
+│   		├── queryClassifier.js           (Query type detection and classification)
+│   		├── contextAssembler.js          (Document scoring and selection)
+│   		├── responseGenerator.js         (Response generation with LLM)
+│   		└── domains/                     (Domain-specific handlers)
+│       			├── wineHandler.js           (Wine-specific logic)
+│       			├── visitingHandler.js       (Visiting-related logic)
+│       			├── clubHandler.js           (Wine club logic)
+│       			├── merchandiseHandler.js    (Merchandise logic)
+│       			├── sustainabilityHandler.js (Sustainability content)
+│       			└── generalHandler.js        (Fallback for general queries)
+│   		├── utils/
+│   				├── knowledgeUtils.js                     
 ├── utils\                        (Helper functions)
 │   ├── logger.js                   (Centralized logging)
 │   ├── queryHelpers.js             (Query detection functions)
