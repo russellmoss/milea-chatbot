@@ -1,0 +1,43 @@
+C:\Users\russe\milea-chatbot\
+├── docs\                      (Project documentation)
+│   ├── chatbot-overview.md        (General overview)
+│   ├── chatbot-implementation.md  (Development roadmap)
+│   ├── technical-architecture.md  (System architecture details)
+│   ├── session-management.md      (User session handling)
+│   ├── transaction-handling.md    (E-commerce integration)
+│   ├── google-search-api.md       (Website search integration)
+│   ├── frontend-setup-guide.md    (Frontend setup instructions)
+│   ├── chatbot-code-sprints.md    (Breakdown of coding tasks)
+│   └── rag-implementation.md      (RAG-specific development notes)
+│
+├── knowledge\                   (Structured knowledge base)
+│   ├── products\                   (Commerce7 product data)
+│   │   ├── wine-*.md                    (Wine product entries)
+│   │   ├── general-merchandise-*.md     (Other product types)
+│   │   └── event-tickets-*.md           (Event ticketing data)
+│   └── vineyard-history.md           (Background information)
+│
+├── logs\                         (Scheduled task logs)
+│
+├── node_modules\                 (Dependencies)
+│
+├── routes\                       (Express API routes)
+│   └── commerce7.js              (Commerce7 product retrieval)
+│
+├── scripts\                      (Automated tasks)
+│   ├── initializeKnowledgeBase.js (Load knowledge base)
+│   ├── scheduledTasks.js          (Automated Commerce7 syncing)
+│   ├── syncCommerce7Products.js   (Fetch & store latest products)
+│   └── testRAG.js                 (Test RAG response generation)
+│
+├── utils\                        (Helper functions)
+│   ├── commerce7Auth.js          (Commerce7 API authentication)
+│   ├── documentProcessor.js      (Splitting & structuring docs)
+│   ├── vectorStore.js            (ChromaDB document embeddings)
+│   └── queryProcessor.js         (Process user queries)
+│
+├── .env                          (Environment variables)
+├── .gitignore                    (Ignored files)
+├── package.json                  (Project metadata & dependencies)
+├── package-lock.json              (Locked dependencies)
+└── server.js                     (Main Express server handling chatbot logic)

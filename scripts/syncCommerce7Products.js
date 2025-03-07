@@ -4,7 +4,16 @@ const path = require('path');
 const axios = require('axios');
 const authConfig = require('../utils/commerce7Auth');
 
-const PRODUCTS_FOLDER = path.join(__dirname, '../knowledge/products');
+// Base knowledge folder
+const KNOWLEDGE_BASE = path.join(__dirname, '../knowledge');
+
+// Product type to folder mapping
+const FOLDER_MAPPING = {
+  'Wine': 'wine',
+  'General Merchandise': 'merchandise',
+  'Tasting': 'tasting',
+  'Event': 'event'
+};
 
 /**
  * Fetch all products from Commerce7 and convert to markdown
@@ -70,29 +79,96 @@ async function fetchAllProducts() {
 }
 
 /**
- * Convert Commerce7 products into structured markdown files
+ * Check if a product should be included based on its type and status
+ * @param {Object} product - The product to check
+ * @returns {boolean} - Whether the product should be included
+ */
+function shouldIncludeProduct(product) {
+  const { type, adminStatus, webStatus } = product;
+
+  switch (type) {
+    case 'Wine':
+    case 'Event':
+      // Only include available/available products
+      return adminStatus === 'Available' && webStatus === 'Available';
+    
+    case 'General Merchandise':
+      // Include available/available OR available/not available
+      return adminStatus === 'Available' && 
+             (webStatus === 'Available' || webStatus === 'Not Available');
+    
+    case 'Tasting':
+      // Include all tasting products
+      return true;
+    
+    default:
+      // Exclude other product types
+      return false;
+  }
+}
+
+/**
+ * Convert Commerce7 products into structured markdown files in type-specific folders
  */
 async function convertProductsToMarkdown(products) {
-  // Ensure the knowledge directory exists
-  if (!fs.existsSync(PRODUCTS_FOLDER)) {
-    fs.mkdirSync(PRODUCTS_FOLDER, { recursive: true });
-    console.log(`📂 Created directory: ${PRODUCTS_FOLDER}`);
-  }
-
-  const allowedTypes = ["Wine", "General Merchandise", "Tasting", "Event"];
-
+  const processedCount = {
+    included: 0,
+    excluded: 0
+  };
+  
+  // Track products by type for logging
+  const typeStats = {};
+  
+  // Process each product
   for (const product of products) {
-    if (!allowedTypes.includes(product.type)) continue; // Only process specified types
-
-    const safeType = product.type.replace(/[^a-zA-Z0-9]/g, "-").toLowerCase(); // Sanitize type
-    const safeTitle = product.title.replace(/[^a-zA-Z0-9]/g, "-").toLowerCase(); // Sanitize title
-    const filename = `${safeType}_${safeTitle}-${product.id}.md`; // New naming: (type)(title)(id)
-    const filePath = path.join(PRODUCTS_FOLDER, filename);
-
+    // Skip if not one of our allowed types or doesn't meet availability criteria
+    if (!FOLDER_MAPPING[product.type] || !shouldIncludeProduct(product)) {
+      processedCount.excluded++;
+      
+      // Track excluded product by type for stats
+      typeStats[product.type] = typeStats[product.type] || { included: 0, excluded: 0 };
+      typeStats[product.type].excluded++;
+      
+      continue;
+    }
+    
+    // Get the appropriate folder for this product type
+    const folderName = FOLDER_MAPPING[product.type];
+    const folderPath = path.join(KNOWLEDGE_BASE, folderName);
+    
+    // Create folder if it doesn't exist
+    if (!fs.existsSync(folderPath)) {
+      fs.mkdirSync(folderPath, { recursive: true });
+      console.log(`📂 Created directory: ${folderPath}`);
+    }
+    
+    // Create sanitized filename
+    const safeType = product.type.replace(/[^a-zA-Z0-9]/g, "-").toLowerCase();
+    const safeTitle = product.title.replace(/[^a-zA-Z0-9]/g, "-").toLowerCase();
+    const filename = `${safeType}_${safeTitle}-${product.id}.md`;
+    const filePath = path.join(folderPath, filename);
+    
+    // Generate markdown and write to file
     const markdown = generateProductMarkdown(product);
-
     fs.writeFileSync(filePath, markdown, 'utf8');
-    console.log(`📝 Created: ${filename}`);
+    
+    console.log(`📝 Created: ${folderName}/${filename}`);
+    
+    // Update stats
+    processedCount.included++;
+    typeStats[product.type] = typeStats[product.type] || { included: 0, excluded: 0 };
+    typeStats[product.type].included++;
+  }
+  
+  // Log summary statistics
+  console.log('📊 Sync Statistics:');
+  console.log(`   Total products processed: ${processedCount.included + processedCount.excluded}`);
+  console.log(`   Included in knowledge base: ${processedCount.included}`);
+  console.log(`   Excluded from knowledge base: ${processedCount.excluded}`);
+  console.log('   Breakdown by product type:');
+  
+  for (const [type, stats] of Object.entries(typeStats)) {
+    console.log(`     - ${type}: ${stats.included} included, ${stats.excluded} excluded`);
   }
 }
 

@@ -1,6 +1,6 @@
 const express = require('express');
 const axios = require('axios');
-const authConfig = require('../utils/commerce7Auth');
+const { authConfig } = require('../config/commerce7');
 
 const router = express.Router();
 
