@@ -1,8 +1,28 @@
 // services/rag/contextAssembler.js
-// Enhanced context assembly with strict validation
+// Enhanced context assembly with strict validation and HTML cleaning
 
 const logger = require('../../utils/logger');
 const { searchSimilarDocuments } = require('../../utils/vectorStore');
+
+/**
+ * Clean HTML content in document text
+ * @param {string} content - Content that may contain HTML
+ * @returns {string} - Cleaned content with HTML properly handled
+ */
+function cleanHtmlContent(content) {
+  // First, preserve valuable HTML content by converting tags to markdown equivalents
+  let cleanedContent = content
+    .replace(/<strong>(.*?)<\/strong>/g, '**$1**')
+    .replace(/<p><strong>(.*?)<\/strong><\/p>/g, '**$1**\n\n')
+    .replace(/<\/p>\s*<p>/g, '\n\n')
+    .replace(/<p>(.*?)<\/p>/g, '$1\n\n')
+    .replace(/<div>\s*<div>/g, '\n')
+    .replace(/<\/div>\s*<\/div>/g, '\n');
+  
+  // Then remove any remaining HTML tags
+  cleanedContent = cleanedContent.replace(/<\/?[^>]+(>|$)/g, '');
+  return cleanedContent.trim();
+}
 
 /**
  * Assemble context for a query based on its classification
@@ -21,7 +41,7 @@ async function assembleContext(query, queryInfo) {
     
     // ✅ IMPROVED: Add strict validation for wine documents
     // This ensures we only return actual wines from our knowledge base
-    const validatedResults = validateResults(semanticResults, queryInfo);
+    const validatedResults = validateResults(semanticResults, queryInfo, query);
     logger.info(`After validation: ${validatedResults.length} valid documents`);
     
     // Score and filter documents
@@ -45,12 +65,21 @@ async function assembleContext(query, queryInfo) {
     // Select final documents to use for context
     const finalDocuments = selectDocuments(validatedGroupedDocs, scoredDocs, queryInfo);
     
+    // Clean HTML content in documents when constructing context
+    const documents = finalDocuments.map(doc => ({
+      ...doc,
+      pageContent: cleanHtmlContent(doc.pageContent)
+    }));
+    
     return {
       query,
       queryInfo,
-      documents: finalDocuments,
+      documents,
       otherVintages: validatedGroupedDocs.otherVintages || [],
-      allDocuments: scoredDocs.map(item => item.doc),
+      allDocuments: scoredDocs.map(item => ({
+        ...item.doc,
+        pageContent: cleanHtmlContent(item.doc.pageContent)
+      })),
       multipleWines: validatedGroupedDocs.uniqueWines && validatedGroupedDocs.uniqueWines.length > 1
     };
   } catch (error) {
@@ -69,10 +98,52 @@ async function assembleContext(query, queryInfo) {
 /**
  * ✅ NEW FUNCTION: Validate retrieved results to ensure they match our knowledge base
  * @param {Array} results - Raw results from vector store
- * @param {Object} queryInfo - Query classification information 
+ * @param {Object} queryInfo - Query classification information
+ * @param {string} query - Original user query for fuzzy matching
  * @returns {Array} - Validated results that exist in our knowledge base
  */
-function validateResults(results, queryInfo) {
+function validateResults(results, queryInfo, query) {
+  // Add fuzzy matching for wine names
+  if (queryInfo.type === 'wine') {
+    // If user has typed any variation of "reserve cab franc"
+    if (query.toLowerCase().match(/reserve\s+(cab|cabernet)\s+franc/)) {
+      // Prioritize documents matching reserve cabernet franc
+      const reserveCabFrancDocs = results.filter(doc => 
+        doc.metadata.source.toLowerCase().includes('reserve-cabernet-franc')
+      );
+      
+      if (reserveCabFrancDocs.length > 0) {
+        logger.wine(`Found ${reserveCabFrancDocs.length} Reserve Cabernet Franc documents via fuzzy matching`);
+        return reserveCabFrancDocs;
+      }
+    }
+    
+    // Add other common variations for Farmhouse Cabernet Franc
+    if (query.toLowerCase().match(/farmhouse\s+(cab|cabernet)\s+franc/) || 
+        query.toLowerCase().includes("farm house") && query.toLowerCase().includes("franc")) {
+      const farmhouseDocs = results.filter(doc => 
+        doc.metadata.source.toLowerCase().includes('farmhouse-cabernet-franc')
+      );
+      
+      if (farmhouseDocs.length > 0) {
+        logger.wine(`Found ${farmhouseDocs.length} Farmhouse Cabernet Franc documents via fuzzy matching`);
+        return farmhouseDocs;
+      }
+    }
+    
+    // Handle variations of "Proceedo"
+    if (query.toLowerCase().match(/proce+do|proceedo|proseco|prosecco/)) {
+      const proceedoDocs = results.filter(doc => 
+        doc.metadata.source.toLowerCase().includes('proceedo')
+      );
+      
+      if (proceedoDocs.length > 0) {
+        logger.wine(`Found ${proceedoDocs.length} Proceedo wine documents via fuzzy matching`);
+        return proceedoDocs;
+      }
+    }
+  }
+  
   // For specific wine queries, be extra strict in validation
   if (queryInfo.type === 'wine' && queryInfo.isSpecificWine) {
     // If it's a confirmed wine from our list, check that documents match the pattern
@@ -147,17 +218,18 @@ function validateGroupedDocs(groupedDocs, queryInfo) {
  * @returns {number} - Number of documents to retrieve
  */
 function determineRetrievalCount(queryInfo) {
+  // Reduce the number of documents retrieved
   switch (queryInfo.type) {
     case 'wine':
-      return queryInfo.subtype === 'specific' ? 8 : 12; // More for generic wine queries
+      return queryInfo.subtype === 'specific' ? 5 : 8; // Reduced from 8/12
     case 'club':
-      return 5;
+      return 3; // Reduced from 5
     case 'visiting':
-      return 10; // More for visiting to ensure comprehensive coverage
+      return 5; // Reduced from 10
     case 'merchandise':
-      return 8;
+      return 4; // Reduced from 8
     default:
-      return 8;
+      return 5; // Reduced from 8
   }
 }
 
@@ -311,6 +383,24 @@ function applyDomainScoring(score, doc, queryInfo, source, content) {
   if (queryInfo.type === 'merchandise' && 
       (source.includes('merchandise') || content.includes('merchandise'))) {
     newScore += 100;
+  }
+  
+  // Wine production scoring boosts
+  if (queryInfo.type === 'wine_production' && 
+      (source.includes('wine_production') || content.includes('wine production'))) {
+    newScore += 100;
+  }
+  
+  // Sustainability scoring boosts
+  if (queryInfo.type === 'sustainability' && 
+      (source.includes('sustainability') || content.includes('sustainable'))) {
+    newScore += 100;
+  }
+  
+  // Business hours scoring boosts
+  if (queryInfo.type === 'business-hours' && 
+      (source.includes('hours') || content.includes('opening hours') || content.includes('business hours'))) {
+    newScore += 150;
   }
   
   return newScore;
@@ -478,7 +568,22 @@ function groupWineDocuments(scoredDocs, queryInfo) {
         if (a.isAvailable !== b.isAvailable) {
           return a.isAvailable ? -1 : 1; // Available wines first
         }
-        return b.vintage - a.vintage; // Then by newest vintage
+        
+        // Handle NV (Non-Vintage) vs numeric year comparison
+        if (a.vintage === 'NV' && typeof b.vintage === 'number') {
+          return 1; // Numeric years come before NV
+        }
+        if (b.vintage === 'NV' && typeof a.vintage === 'number') {
+          return -1; // Numeric years come before NV
+        }
+        
+        // Both are numbers, compare normally
+        if (typeof a.vintage === 'number' && typeof b.vintage === 'number') {
+          return b.vintage - a.vintage; // Newer vintages first
+        }
+        
+        // Default - keep original order
+        return 0;
       });
       
       // Primary document is newest available or just newest if none available
@@ -544,5 +649,6 @@ function selectDocuments(groupedDocs, scoredDocs, queryInfo) {
 module.exports = {
   assembleContext,
   validateResults,
-  validateGroupedDocs
+  validateGroupedDocs,
+  cleanHtmlContent
 };

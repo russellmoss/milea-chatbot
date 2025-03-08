@@ -2,40 +2,63 @@ const fs = require('fs');
 const path = require('path');
 const { RecursiveCharacterTextSplitter } = require('langchain/text_splitter');
 
+/**
+ * Process documents in batches for better performance
+ * @param {Array} filePaths - Array of file paths to process
+ * @returns {Promise<Array>} - Array of document chunks
+ */
 async function processDocuments(filePaths) {
   console.log(`📂 Processing ${filePaths.length} markdown files...`);
 
   let allChunks = [];
-
-  for (const filePath of filePaths) {
-    console.log(`✨ Processing file: ${filePath}`);
-
-    const content = fs.readFileSync(filePath, 'utf-8');
+  
+  // Process documents in batches for better throughput
+  const BATCH_SIZE = 5;
+  
+  for (let i = 0; i < filePaths.length; i += BATCH_SIZE) {
+    const batch = filePaths.slice(i, i + BATCH_SIZE);
+    console.log(`🔄 Processing batch ${Math.floor(i/BATCH_SIZE) + 1} (${batch.length} files)...`);
     
-    // Detect content type based on folder and filename
-    const contentType = detectContentType(filePath);
-    console.log(`🏷️ Detected content type: ${contentType}`);
+    const batchPromises = batch.map(async (filePath) => {
+      console.log(`✨ Processing file: ${filePath}`);
+      
+      try {
+        const content = fs.readFileSync(filePath, 'utf-8');
+        
+        // Detect content type based on folder and filename
+        const contentType = detectContentType(filePath);
+        console.log(`🏷️ Detected content type: ${contentType}`);
 
-    // Get appropriate chunk parameters based on content type
-    const { chunkSize, chunkOverlap } = getChunkParameters(contentType);
+        // Get appropriate chunk parameters based on content type
+        const { chunkSize, chunkOverlap } = getChunkParameters(contentType);
 
-    const textSplitter = new RecursiveCharacterTextSplitter({
-      chunkSize,
-      chunkOverlap,
-      separators: ["\n\n", "\n", ". ", "! ", "? ", ", ", " ", ""]
+        const textSplitter = new RecursiveCharacterTextSplitter({
+          chunkSize,
+          chunkOverlap,
+          separators: ["\n\n", "\n", ". ", "! ", "? ", ", ", " ", ""]
+        });
+
+        const chunks = await textSplitter.createDocuments(
+          [content],
+          [{ 
+            source: path.basename(filePath),
+            contentType, // Add content type metadata
+            createdAt: new Date().toISOString()
+          }]
+        );
+
+        console.log(`🧩 Created ${chunks.length} chunks from ${filePath} with size ${chunkSize}/${chunkOverlap}`);
+        return chunks;
+      } catch (error) {
+        console.error(`❌ Error processing file ${filePath}:`, error);
+        return []; // Return empty array on error
+      }
     });
-
-    const chunks = await textSplitter.createDocuments(
-      [content],
-      [{ 
-        source: path.basename(filePath),
-        contentType, // Add content type metadata
-        createdAt: new Date().toISOString()
-      }]
-    );
-
-    console.log(`🧩 Created ${chunks.length} chunks from ${filePath} with size ${chunkSize}/${chunkOverlap}`);
-    allChunks = [...allChunks, ...chunks];
+    
+    const batchResults = await Promise.all(batchPromises);
+    allChunks = [...allChunks, ...batchResults.flat()];
+    
+    console.log(`✅ Batch ${Math.floor(i/BATCH_SIZE) + 1} complete`);
   }
 
   console.log(`🏁 Total chunks created: ${allChunks.length}`);

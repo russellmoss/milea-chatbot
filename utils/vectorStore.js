@@ -47,7 +47,9 @@ async function storeDocuments(chunks) {
   try {
     const embeddings = new OpenAIEmbeddings({
       openAIApiKey: process.env.OPENAI_API_KEY,
-      modelName: 'text-embedding-3-small'
+      modelName: 'text-embedding-3-small',
+      batchSize: 512, // Process more inputs in parallel
+      stripNewLines: true // Can improve performance with text
     });
     
     const vectorStore = await Chroma.fromExistingCollection(
@@ -65,13 +67,15 @@ async function storeDocuments(chunks) {
   }
 }
 
-async function searchSimilarDocuments(query, k = 5) {
+async function searchSimilarDocuments(query, k = 5, filter = null) {
   console.log(`🔍 Searching for documents similar to: "${query}"`);
   
   try {
     const embeddings = new OpenAIEmbeddings({
       openAIApiKey: process.env.OPENAI_API_KEY,
-      modelName: 'text-embedding-3-small'
+      modelName: 'text-embedding-3-small',
+      batchSize: 512, // Process more inputs in parallel
+      stripNewLines: true // Can improve performance with text
     });
     
     const vectorStore = await Chroma.fromExistingCollection(
@@ -79,12 +83,37 @@ async function searchSimilarDocuments(query, k = 5) {
       { collectionName: COLLECTION_NAME }
     );
     
-    const results = await vectorStore.similaritySearch(query, k);
+    let searchOptions = {};
+    
+    // Only apply filter if it has valid conditions
+    if (filter && Object.keys(filter).length > 0) {
+      // For LangChain's Chroma implementation, filters need to be in this format:
+      // { metadata: { key: value } }
+      searchOptions.filter = { metadata: filter };
+      console.log(`🔍 Using filter:`, searchOptions.filter);
+    }
+    
+    // Use the filter in the similarity search if provided
+    const results = filter && Object.keys(filter).length > 0 
+      ? await vectorStore.similaritySearch(query, k, searchOptions.filter)
+      : await vectorStore.similaritySearch(query, k);
     
     console.log(`✅ Found ${results.length} similar documents`);
+    
+    // Log sources of found documents for debugging
+    if (results.length > 0) {
+      console.log('📄 Document sources:');
+      results.slice(0, 3).forEach((doc, i) => {
+        console.log(`   ${i+1}. ${doc.metadata.source || 'Unknown source'}`);
+      });
+    }
+    
     return results;
   } catch (error) {
     console.error('❌ Error searching similar documents:', error);
+    console.error('Error details:', error.message);
+    
+    // Return empty array rather than throwing to avoid crashing the application
     return [];
   }
 }

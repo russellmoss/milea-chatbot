@@ -1,5 +1,5 @@
 // services/rag/queryClassifier.js
-// Enhanced query classifier with strict validation
+// Enhanced query classifier with strict validation and sophisticated wine pattern detection
 
 const logger = require('../../utils/logger');
 
@@ -108,40 +108,40 @@ function isMerchandiseQuery(query) {
   return merchandiseTerms.some(term => query.includes(term));
 }
 
-
 /**
  * Check if a query is wine production related
  * @param {string} query - Lowercase user query
  * @returns {boolean} - Whether the query is about wine production
  */
-function iswineProductionQuery(query) {
+function isWineProductionQuery(query) {
   // Common terms related to wine production
-  const wine_productionTerms = [
+  const wineProductionTerms = [
     'wine production', 'how is wine made', 'winemaking', 'make wine',
     'fermentation', 'grape harvest', 'bottling', 'vineyard process',
-    'grow grapes'
+    'grow grapes', 'winery operations', 'vineyard management',
+    'wine processing', 'how do you make', 'production process'
   ];
   
-  return wine_productionTerms.some(term => query.includes(term));
+  return wineProductionTerms.some(term => query.includes(term));
 }
-
 
 /**
  * Check if a query is sustainability related
  * @param {string} query - Lowercase user query
  * @returns {boolean} - Whether the query is about sustainability
  */
-function issustainabilityQuery(query) {
+function isSustainabilityQuery(query) {
   // Common terms related to sustainability
   const sustainabilityTerms = [
     'sustainability', 'sustainable', 'organic', 'eco-friendly',
     'environmentally friendly', 'green practices', 'carbon footprint',
-    'pesticides', 'chemical', 'farming practices'
+    'pesticides', 'chemical', 'farming practices', 'regenerative',
+    'natural farming', 'conservation', 'soil health', 'compost',
+    'biodiversity', 'ecosystem'
   ];
   
   return sustainabilityTerms.some(term => query.includes(term));
 }
-
 
 /**
  * Check if a query is about business hours or open status
@@ -153,10 +153,150 @@ function isBusinessHoursQuery(query) {
   const hoursPatterns = [
     'hour', 'open', 'closed', 'close', 'opening time', 'closing time',
     'when are you open', 'when do you open', 'when do you close',
-    'what time', 'what days', 'open today', 'closed today'
+    'what time', 'what days', 'open today', 'closed today',
+    'are you open', 'schedule', 'open now', 'currently open'
   ];
   
   return hoursPatterns.some(pattern => query.includes(pattern));
+}
+
+/**
+ * Identifies specific wine pattern from query text with fuzzy matching
+ * @param {string} query - User query to analyze
+ * @returns {Object|null} - Wine data object if matched, null otherwise
+ */
+function identifySpecificWinePattern(query) {
+  const queryLower = query.toLowerCase();
+  
+  // Define wine pattern matching rules with variations and synonyms
+  const winePatterns = [
+    {
+      name: 'reserve cabernet franc',
+      pattern: 'reserve-cabernet-franc',
+      matchers: [
+        {terms: ['reserve', 'cab', 'franc'], proximity: 3},
+        {terms: ['reserve', 'cabernet', 'franc'], proximity: 4},
+        {regex: /\breserve\s+cab(ernet)?\s+franc\b/}
+      ]
+    },
+    {
+      name: 'farmhouse cabernet franc',
+      pattern: 'farmhouse-cabernet-franc',
+      matchers: [
+        {terms: ['farmhouse', 'cab', 'franc'], proximity: 3},
+        {terms: ['farmhouse', 'cabernet', 'franc'], proximity: 4},
+        {regex: /\bfarmhouse\s+cab(ernet)?\s+franc\b/}
+      ]
+    },
+    {
+      name: 'queen of the meadow',
+      pattern: 'queen-of-the-meadow',
+      matchers: [
+        {terms: ['queen', 'meadow'], proximity: 3},
+        {regex: /\bqueen\s+of\s+the\s+meadow\b/}
+      ]
+    },
+    {
+      name: 'four seasons',
+      pattern: 'four-seasons',
+      matchers: [
+        {regex: /\bfour\s+seasons\b/}
+      ]
+    },
+    {
+      name: 'proceedo white',
+      pattern: 'proceedo-white',
+      matchers: [
+        {terms: ['proceedo', 'white'], proximity: 2},
+        {regex: /\bproceedo\s+white\b/}
+      ]
+    },
+    {
+      name: 'proceedo rosé',
+      pattern: 'proceedo-rose',
+      matchers: [
+        {terms: ['proceedo', 'rose'], proximity: 2},
+        {terms: ['proceedo', 'rosé'], proximity: 2},
+        {regex: /\bproceedo\s+ros[eé]\b/}
+      ]
+    },
+    {
+      name: "sang's cabernet franc",
+      pattern: 'sangs-cabernet-franc',
+      matchers: [
+        {terms: ['sang', 'cab', 'franc'], proximity: 3},
+        {terms: ['sangs', 'cabernet', 'franc'], proximity: 4},
+        {regex: /\bsang'?s\s+cab(ernet)?\s+franc\b/}
+      ]
+    },
+    {
+      name: 'hudson heritage chambourcin',
+      pattern: 'hudson-heritage-chambourcin',
+      matchers: [
+        {terms: ['hudson', 'chambourcin'], proximity: 3},
+        {terms: ['heritage', 'chambourcin'], proximity: 2},
+        {regex: /\bhudson\s+heritage\s+chambourcin\b/}
+      ]
+    }
+  ];
+
+  // Check each wine pattern against the query
+  for (const wine of winePatterns) {
+    // Check regex matchers first (most precise)
+    for (const matcher of wine.matchers) {
+      if (matcher.regex && matcher.regex.test(queryLower)) {
+        return {
+          name: wine.name,
+          pattern: wine.pattern
+        };
+      }
+    }
+    
+    // Check term proximity matchers
+    for (const matcher of wine.matchers) {
+      if (matcher.terms && matcher.proximity) {
+        // Count how many terms from the matcher appear in the query
+        const matchedTerms = matcher.terms.filter(term => queryLower.includes(term));
+        
+        // If all terms match, check for proximity
+        if (matchedTerms.length === matcher.terms.length) {
+          // Simple proximity check: are all terms present within a short distance of each other?
+          // For a more sophisticated approach, we could implement a sliding window
+          const words = queryLower.split(/\s+/);
+          const positions = matcher.terms.map(term => {
+            return words.findIndex(word => word.includes(term));
+          }).filter(pos => pos >= 0);
+          
+          if (positions.length === matcher.terms.length) {
+            const min = Math.min(...positions);
+            const max = Math.max(...positions);
+            
+            // Check if all terms are within the proximity window
+            if (max - min < matcher.proximity) {
+              return {
+                name: wine.name,
+                pattern: wine.pattern
+              };
+            }
+          }
+        }
+      }
+    }
+  }
+  
+  // Special case for just "Proceedo" without white/rosé specification
+  if (/\bproceedo\b/.test(queryLower) && 
+      !queryLower.includes('white') && 
+      !queryLower.includes('rosé') &&
+      !queryLower.includes('rose')) {
+    return {
+      name: 'proceedo',
+      pattern: 'proceedo',
+      isGeneric: true
+    };
+  }
+  
+  return null;
 }
 
 /**
@@ -167,7 +307,23 @@ function isBusinessHoursQuery(query) {
 function classifyQuery(query) {
   const queryLower = query.toLowerCase();
   
-  // Check for business hours queries first
+  // Direct matching for common wine query patterns before the general classification
+  const specificWine = identifySpecificWinePattern(query);
+  if (specificWine) {
+    logger.wine(`Specific wine pattern detected: "${specificWine.name}" in query: "${query}"`);
+    return {
+      type: 'wine',
+      subtype: 'specific',
+      isSpecificWine: true,
+      specificWine: specificWine.name,
+      winePattern: specificWine.pattern,
+      wineTerms: specificWine.name.split(' '),
+      isConfirmedWine: true,
+      isGenericProceedo: specificWine.isGeneric || false
+    };
+  }
+  
+  // Check for business hours queries
   if (isBusinessHoursQuery(queryLower)) {
     return {
       type: 'business-hours',
@@ -177,7 +333,7 @@ function classifyQuery(query) {
   
   // Check if this is a wine club related query
   if (isWineClubQuery(queryLower)) {
-    logger.wine(`Wine club query detected: "${query}"`);
+    logger.info(`Wine club query detected: "${query}"`);
     return {
       type: 'club',
       subtype: 'general',
@@ -198,7 +354,7 @@ function classifyQuery(query) {
   }
   
   // Check if this is a wine production related query
-  if (iswineProductionQuery(queryLower)) {
+  if (isWineProductionQuery(queryLower)) {
     logger.info(`Wine Production query detected: "${query}"`);
     return {
       type: 'wine_production',
@@ -209,7 +365,7 @@ function classifyQuery(query) {
   }
 
   // Check if this is a sustainability related query
-  if (issustainabilityQuery(queryLower)) {
+  if (isSustainabilityQuery(queryLower)) {
     logger.info(`Sustainability query detected: "${query}"`);
     return {
       type: 'sustainability',
@@ -239,13 +395,14 @@ function classifyQuery(query) {
     {term: 'farmhouse cab franc', pattern: 'farmhouse-cabernet-franc'},
     {term: 'queen of the meadow', pattern: 'queen-of-the-meadow'},
     {term: 'four seasons', pattern: 'four-seasons'},
-    {term: 'proceedo', pattern: 'proceedo'},
+    {term: 'proceedo white', pattern: 'proceedo-white'},
+    {term: 'proceedo rosé', pattern: 'proceedo-rose'},
+    {term: 'proceedo rose', pattern: 'proceedo-rose'},
     {term: 'sang\'s cabernet franc', pattern: 'sangs-cabernet-franc'},
     {term: 'hudson heritage chambourcin', pattern: 'hudson-heritage-chambourcin'}
-    // Add ALL your actual wines here
   ];
   
-  // Check for specific wines in query
+  // Check for specific wines in query with exact matching
   for (const wine of confirmedWines) {
     if (queryLower.includes(wine.term)) {
       logger.wine(`Specific wine query detected (${wine.term}): "${query}"`);
@@ -255,16 +412,36 @@ function classifyQuery(query) {
         isSpecificWine: true,
         specificWine: wine.term,
         winePattern: wine.pattern,
-        wineTerms: [wine.term],
-        // ✅ ADDED: Flag to indicate this is a confirmed wine
+        wineTerms: wine.term.split(' '),
         isConfirmedWine: true
       };
     }
   }
   
+  // Handle just "Proceedo" separately
+  if (queryLower.includes('proceedo') && 
+      !queryLower.includes('white') && 
+      !queryLower.includes('rosé') &&
+      !queryLower.includes('rose')) {
+    logger.wine(`Generic Proceedo query detected: "${query}"`);
+    return {
+      type: 'wine',
+      subtype: 'specific',
+      isSpecificWine: true,
+      specificWine: 'proceedo',
+      winePattern: 'proceedo',
+      wineTerms: ['proceedo'],
+      isConfirmedWine: true,
+      isGenericProceedo: true
+    };
+  }
+  
   // Define generic wine types for detecting general wine queries
-  const genericWineTypes = ['rose', 'rosé', 'chardonnay', 'cabernet', 'franc', 'riesling', 
-                           'merlot', 'pinot', 'noir', 'sauvignon', 'blanc', 'red', 'white'];
+  const genericWineTypes = [
+    'rose', 'rosé', 'chardonnay', 'cabernet', 'franc', 'riesling', 
+    'merlot', 'pinot', 'noir', 'sauvignon', 'blanc', 'red', 'white',
+    'blaufränkisch', 'blaufrankisch', 'grüner', 'gruner', 'veltliner'
+  ];
   
   // Extract matching wine terms
   const matchingWineTerms = genericWineTypes.filter(term => queryLower.includes(term));
@@ -277,6 +454,24 @@ function classifyQuery(query) {
       subtype: 'generic',
       isSpecificWine: false,
       wineTerms: matchingWineTerms
+    };
+  }
+  
+  // Check for price-specific queries about wines
+  const pricePatterns = [
+    /how much (is|does) .+ cost/i,
+    /price of .+/i,
+    /cost of .+/i,
+    /how much .+/i
+  ];
+  
+  if (pricePatterns.some(pattern => pattern.test(query)) && isLikelyWineQuery(queryLower)) {
+    logger.wine(`Wine price query detected: "${query}"`);
+    return {
+      type: 'wine',
+      subtype: 'price',
+      isSpecificWine: false,
+      wineTerms: []
     };
   }
   
@@ -316,7 +511,8 @@ module.exports = {
   classifyVisitingQueryType,
   isMerchandiseQuery,
   isLoyaltyProgramQuery,
-  iswineProductionQuery,
-  issustainabilityQuery,
-  isBusinessHoursQuery
+  isWineProductionQuery,
+  isSustainabilityQuery,
+  isBusinessHoursQuery,
+  identifySpecificWinePattern
 };

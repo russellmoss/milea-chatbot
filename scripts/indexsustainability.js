@@ -45,7 +45,9 @@ async function indexsustainability() {
     console.log('🧮 Generating embeddings...');
     const embeddings = new OpenAIEmbeddings({
       openAIApiKey: process.env.OPENAI_API_KEY,
-      modelName: 'text-embedding-3-small'
+      modelName: 'text-embedding-3-small',
+      batchSize: 512, // Process more inputs in parallel
+      stripNewLines: true // Can improve performance with text
     });
     
     // Initialize ChromaDB collection

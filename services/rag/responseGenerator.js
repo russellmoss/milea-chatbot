@@ -35,9 +35,14 @@ async function generateResponse(query, queryInfo, context, additionalData = {}) 
     // Construct a dynamic prompt based on the query type
     const promptTemplate = constructPrompt(query, queryInfo, contextText, vintagesInfo, enhancedData);
     
+    // Determine if we can use a simpler model based on query complexity
+    const simpleQueryTypes = ['business-hours', 'visiting-hours', 'visiting-directions'];
+    const useSimpleModel = simpleQueryTypes.includes(queryInfo.type) || 
+                          (queryInfo.type === 'visiting' && simpleQueryTypes.includes(queryInfo.subtype));
+    
     // Use OpenAI to generate response
     const response = await openai.chat.completions.create({
-      model: "gpt-4",
+      model: useSimpleModel ? "gpt-3.5-turbo" : "gpt-4", // Use faster model for simple queries
       messages: [{ role: "user", content: promptTemplate }],
       temperature: 0.2 // Lower temperature for more factual responses
     });
@@ -75,6 +80,8 @@ ${contextText}
 ${vintagesInfo ? `VINTAGE INFORMATION:\n${vintagesInfo}\n\n` : ''}
 
 USER QUERY: "${query}"
+
+Your context contains some content that may have HTML formatting. Interpret any HTML content as regular text and extract all information from it. Ignore any HTML tags and focus on the content within them.
 
 Based on the context information provided, give a detailed response that addresses the user's query. 
 `;
@@ -161,6 +168,8 @@ IMPORTANT WINE GUIDANCE:
 3. The vintage year should be clearly stated at the beginning of your response (e.g., "The 2022 Reserve Cabernet Franc is...").
 4. DO NOT fabricate any wines that aren't in the context. Only discuss wines from the verified list.
 5. NEVER suggest a wine in "Did you mean?" unless it is on the verified list I provided above.
+6. Make sure to include ALL tasting notes and wine notes from the context, even if they appear within HTML tags.
+7. Carefully extract all details about aromas, flavors, and vineyard information.
 `,
     'visiting': `
 For visiting-related queries, include:
@@ -232,6 +241,8 @@ You are an AI assistant for Milea Estate Vineyard. The user has asked about "${w
 
 VERIFIED WINES:
 ${verifiedOptions}
+
+Your context contains some content that may have HTML formatting. Interpret any HTML content as regular text and extract all information from it. Ignore any HTML tags and focus on the content within them.
 
 Please respond with a warm, conversational message that:
 1. Acknowledges their interest in our ${wineType} wines

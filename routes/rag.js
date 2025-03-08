@@ -4,12 +4,23 @@ const router = express.Router();
 const { generateRAGResponse } = require('../services/rag/ragService');
 const logger = require('../utils/logger');
 
+// Keep track of recent messages per session
+const sessionMessages = new Map();
+
 router.post("/", async (req, res) => {
   try {
-    const { message } = req.body;
+    const { message, sessionId } = req.body;
     logger.info("Processing RAG chat request:", message);
     
-    const ragResponse = await generateRAGResponse(message);
+    // Get previous messages for this session
+    const previousMessages = sessionMessages.get(sessionId) || [];
+    
+    // Generate response with conversation context
+    const ragResponse = await generateRAGResponse(message, previousMessages);
+    
+    // Update session messages
+    const updatedMessages = [...previousMessages, message];
+    sessionMessages.set(sessionId, updatedMessages.slice(-5)); // Keep last 5 messages
     
     res.json({
       response: ragResponse.response,
