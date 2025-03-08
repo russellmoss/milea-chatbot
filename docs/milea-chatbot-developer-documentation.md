@@ -11,12 +11,15 @@
    - [Vector Storage](#vector-storage)
    - [Query Processing](#query-processing)
    - [Response Generation](#response-generation)
-5. [Commerce7 Integration](#commerce7-integration)
-6. [Domain-Based Architecture](#domain-based-architecture)
-7. [Extending the Knowledge Base](#extending-the-knowledge-base)
-8. [Deployment Guide](#deployment-guide)
-9. [Monitoring and Maintenance](#monitoring-and-maintenance)
-10. [Troubleshooting](#troubleshooting)
+5. [Knowledge Management Tools](#knowledge-management-tools)
+   - [Knowledge CLI](#knowledge-cli)
+   - [Knowledge Base Watcher](#knowledge-base-watcher)
+6. [Commerce7 Integration](#commerce7-integration)
+7. [Domain-Based Architecture](#domain-based-architecture)
+8. [Extending the Knowledge Base](#extending-the-knowledge-base)
+9. [Deployment Guide](#deployment-guide)
+10. [Monitoring and Maintenance](#monitoring-and-maintenance)
+11. [Troubleshooting](#troubleshooting)
 
 ## Introduction
 
@@ -53,6 +56,7 @@ The system uses the following core technologies:
 - **OpenAI API**: For embeddings and response generation
 - **Commerce7 API**: For product and inventory data
 - **Cron**: For scheduled tasks like data synchronization
+- **Chokidar**: For watching file system changes in the knowledge base
 
 ## RAG Implementation
 
@@ -68,7 +72,9 @@ knowledge/
 ├── visiting/         # Visiting information
 ├── event/            # Event information
 ├── wine club/        # Wine club details
-└── merchandise/      # Non-wine merchandise
+├── merchandise/      # Non-wine merchandise
+├── milea_miles/      # Loyalty program information
+└── wine_production/  # Wine production process details
 ```
 
 Each domain directory contains markdown files that follow a consistent structure for proper processing.
@@ -112,6 +118,96 @@ Response generation uses the OpenAI API with carefully crafted prompts:
 2. **LLM Interaction**: The system calls the OpenAI API with the constructed prompt
 3. **Response Formatting**: The response is formatted with additional metadata like sources
 
+## Knowledge Management Tools
+
+One of the key enhancements to the chatbot system is the addition of specialized tools for managing the knowledge base. These tools streamline the process of adding, updating, and reindexing content.
+
+### Knowledge CLI
+
+The Knowledge CLI is an interactive command-line tool that helps manage knowledge base content without requiring direct file manipulation or knowledge of the underlying file structure.
+
+#### Features
+
+- Create new knowledge domains
+- Add files to existing domains
+- Update existing knowledge files
+- Reindex the entire knowledge base
+- Automatically generate domain handlers and update system components
+
+#### Usage
+
+To use the Knowledge CLI, run:
+
+```powershell
+npm run knowledge
+```
+
+This will start an interactive session where you can select the operation you want to perform:
+
+```
+🧠 Milea Knowledge Management System 🧠
+----------------------------------------
+What would you like to do?
+1. Add a new knowledge domain
+2. Add files to an existing domain
+3. Update existing knowledge files
+4. Reindex the knowledge base
+>
+```
+
+When adding a new domain, the CLI will:
+1. Create the domain folder
+2. Create initial content files
+3. Create a domain handler in `services/rag/domains/`
+4. Update the query classifier to recognize queries for this domain
+5. Update the RAG service to route queries to the new handler
+6. Create a domain-specific indexing script
+7. Run the indexing script to add the domain to the vector database
+
+When updating existing files, the CLI will:
+1. Show a list of all files in the knowledge base
+2. Open the selected file in your default editor
+3. Automatically reindex the appropriate domain when you save changes
+
+### Knowledge Base Watcher
+
+The Knowledge Base Watcher is a file system watcher that monitors the knowledge base directories for changes and automatically reindexes affected content when files are added or modified.
+
+#### Features
+
+- Watches for file changes in real-time
+- Automatically identifies the domain for changed files
+- Runs domain-specific indexing when files change
+- Falls back to full reindexing when needed
+
+#### Usage
+
+To start the knowledge base watcher during development, run:
+
+```powershell
+npm run watch-kb
+```
+
+This will start the watcher and display:
+
+```
+👀 Starting knowledge base file watcher...
+📁 Watching directory: /path/to/knowledge
+✅ File watcher started. Waiting for changes...
+```
+
+When you modify a file, the watcher will automatically detect the change:
+
+```
+📝 Detected change in file: wine/reserve-cabernet-franc.md
+🔍 File belongs to domain: wine
+🔄 Running domain-specific indexing: indexWine.js
+...
+✅ Successfully reindexed content for changed file: reserve-cabernet-franc.md
+```
+
+This makes it much easier to develop and test content changes, as you don't need to manually reindex the knowledge base after each modification.
+
 ## Commerce7 Integration
 
 The system integrates with Commerce7 to maintain up-to-date product information:
@@ -138,11 +234,13 @@ This approach allows for specialized processing logic for each domain while main
 - **visitingHandler.js**: Processes visiting-related queries including hours, directions, reservations, etc.
 - **clubHandler.js**: Manages wine club membership queries
 - **merchandiseHandler.js**: Handles non-wine product queries
+- **loyaltyHandler.js**: Processes Milea Miles program queries
+- **wine_productionHandler.js**: Handles questions about how wine is made
 - **generalHandler.js**: Fallback handler for general queries that don't fit a specific domain
 
 ## Extending the Knowledge Base
 
-The knowledge base is designed to be easily extensible with new domains. Here's how to add a new knowledge domain:
+The knowledge base is designed to be easily extensible with new domains. The Knowledge CLI now automates most of this process, but here's how it works behind the scenes:
 
 ### 1. Create a New Knowledge Directory
 
@@ -223,13 +321,9 @@ switch (queryInfo.type) {
 }
 ```
 
-### 6. Index the New Content
+### 6. Create an Indexing Script
 
-Create an indexing script or add to `initializeKnowledgeBase.js` to process and index the new content.
-
-### 7. Test the New Domain
-
-Create test queries for the new domain to verify that classification, retrieval, and response generation work correctly.
+Create a domain-specific indexing script in `scripts/indexNewDomain.js` to process and index the new content.
 
 ## Deployment Guide
 
@@ -408,7 +502,7 @@ For production deployments, implement performance monitoring:
 
 1. **Commerce7 Sync Check**: Verify that product synchronization is working correctly
 2. **RAG Response Quality**: Regularly test with common queries to ensure high-quality responses
-3. **Knowledge Base Updates**: Add new information as it becomes available
+3. **Knowledge Base Updates**: Add new information as it becomes available using the Knowledge CLI
 
 ## Troubleshooting
 
@@ -448,7 +542,8 @@ For production deployments, implement performance monitoring:
 **Solutions**:
 - Check that documents are properly formatted
 - Verify that indexing ran successfully
-- Retry the indexing process
+- Retry the indexing process using `npm run knowledge` and selecting option 4
+- Use the knowledge watcher (`npm run watch-kb`) during development to ensure changes are indexed
 - Check ChromaDB collection contents
 
 ### Support Resources
@@ -461,5 +556,7 @@ For production deployments, implement performance monitoring:
 ## Conclusion
 
 This developer documentation provides a comprehensive overview of the Milea Estate Vineyard Chatbot's architecture, components, and operation. By following the modular, domain-based approach, the system can be easily extended with new knowledge domains and capabilities while maintaining a consistent structure.
+
+The addition of the Knowledge CLI and Knowledge Base Watcher tools significantly streamlines the management of the knowledge base, making it easier for developers and content creators to add and update information without requiring deep technical understanding of the underlying RAG system.
 
 For questions not covered in this documentation, please contact the original development team or refer to the implementation code which contains detailed comments.

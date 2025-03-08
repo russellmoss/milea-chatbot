@@ -19,18 +19,19 @@
     "@langchain/openai": "^0.4.4",
     "axios": "^1.8.1",
     "body-parser": "^1.20.3",
+    "chokidar": "^3.5.3",
     "chromadb": "^1.10.5",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "glob": "^11.0.1",
+    "jsdom": "^26.0.0",
     "jsonwebtoken": "^9.0.2",
     "node-cron": "^3.0.3",
     "openai": "^4.86.2",
-    "chokidar": "^3.5.3"
+    "puppeteer": "^24.4.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.9"
   }
-
 }
