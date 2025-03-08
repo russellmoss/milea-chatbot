@@ -15,6 +15,7 @@ const generalHandler = require('./domains/generalHandler');
 const sustainabilityHandler = require('./domains/sustainabilityHandler');
 const wine_productionHandler = require('./domains/wine_productionHandler');
 const loyaltyHandler = require('./domains/loyaltyHandler');
+const businessHoursHandler = require('./domains/businessHoursHandler');
 
 /**
  * Main entry point for RAG response generation
@@ -36,6 +37,9 @@ async function generateRAGResponse(query) {
     // Step 3: Handle the query with the appropriate domain handler
     let responseData;
     switch (queryInfo.type) {
+      case 'business-hours':
+        responseData = await businessHoursHandler.handleQuery(query, queryInfo, context);
+        break;
       case 'wine':
         responseData = await wineHandler.handleQuery(query, queryInfo, context);
         break;

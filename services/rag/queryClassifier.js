@@ -292,6 +292,34 @@ function issustainabilityQuery(query) {
   return sustainabilityTerms.some(term => query.includes(term));
 }
 
+/**
+ * Check if a query is about business hours or open status
+ * @param {string} query - Lowercase user query
+ * @returns {boolean} - Whether the query is about business hours
+ */
+function isBusinessHoursQuery(query) {
+  // Look for patterns specifically about business hours or open status
+  const hoursPatterns = [
+    'hour', 'open', 'closed', 'close', 'opening time', 'closing time',
+    'when are you open', 'when do you open', 'when do you close',
+    'what time', 'what days', 'open today', 'closed today'
+  ];
+  
+  return hoursPatterns.some(pattern => query.includes(pattern));
+}
+
+function classifyQuery(query) {
+  const queryLower = query.toLowerCase();
+  
+  // Check for business hours queries first
+  if (isBusinessHoursQuery(queryLower)) {
+    return {
+      type: 'business-hours',
+      subtype: 'general'
+    };
+  }
+}
+
 module.exports = {
   issustainabilityQuery,
   iswineProductionQuery,
