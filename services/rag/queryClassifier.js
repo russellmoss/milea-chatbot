@@ -292,6 +292,8 @@ function issustainabilityQuery(query) {
   return sustainabilityTerms.some(term => query.includes(term));
 }
 
+// Add to your existing queryClassifier.js file
+
 /**
  * Check if a query is about business hours or open status
  * @param {string} query - Lowercase user query
@@ -308,6 +310,7 @@ function isBusinessHoursQuery(query) {
   return hoursPatterns.some(pattern => query.includes(pattern));
 }
 
+// Update your classifyQuery function to check for business hours queries first
 function classifyQuery(query) {
   const queryLower = query.toLowerCase();
   
@@ -318,6 +321,8 @@ function classifyQuery(query) {
       subtype: 'general'
     };
   }
+  
+  // Rest of your existing classification logic...
 }
 
 module.exports = {

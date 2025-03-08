@@ -25,6 +25,7 @@
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "glob": "^11.0.1",
+    "googleapis": "^146.0.0",
     "jsdom": "^26.0.0",
     "jsonwebtoken": "^9.0.2",
     "node-cron": "^3.0.3",

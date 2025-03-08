@@ -2,13 +2,6 @@
 const logger = require('../../../utils/logger');
 const axios = require('axios');
 
-/**
- * Handle business hours related queries
- * @param {string} query - User's query
- * @param {Object} queryInfo - Query classification information
- * @param {Object} context - Context information
- * @returns {Promise<Object>} - Handler response
- */
 async function handleQuery(query, queryInfo, context) {
   try {
     logger.info(`Processing business hours query: "${query}"`);
@@ -18,7 +11,7 @@ async function handleQuery(query, queryInfo, context) {
                            query.toLowerCase().includes('closed');
     
     try {
-      // Call our internal API to get business hours from GMB
+      // Call our internal API to get business hours
       const response = await axios.get('http://localhost:8080/api/business/hours');
       const businessHours = response.data;
       
@@ -29,8 +22,8 @@ async function handleQuery(query, queryInfo, context) {
           response: isOpen 
             ? "Yes, Milea Estate Vineyard is currently open! 😊 You can visit us right now."
             : "Sorry, Milea Estate Vineyard is currently closed. Please check our hours for when we'll be open next.",
-          sources: ["Google My Business"],
-          fromGoogleMyBusiness: true
+          sources: ["Google Places API"],
+          fromGoogleAPI: true
         };
       } else {
         // Format and return regular hours
@@ -40,34 +33,21 @@ async function handleQuery(query, queryInfo, context) {
           response += `- **${day.day}**: ${day.openTime} - ${day.closeTime}\n`;
         });
         
-        // Add special hours if any
-        if (businessHours.specialHours && businessHours.specialHours.length > 0) {
-          response += "\n**Special Hours**\n\n";
-          businessHours.specialHours.forEach(special => {
-            const dateStr = new Date(special.startDate).toLocaleDateString();
-            if (special.isClosed) {
-              response += `- **${dateStr}**: Closed\n`;
-            } else {
-              response += `- **${dateStr}**: ${special.openTime} - ${special.closeTime}\n`;
-            }
-          });
-        }
-        
         return {
           response,
-          sources: ["Google My Business"],
-          fromGoogleMyBusiness: true
+          sources: ["Google Places API"],
+          fromGoogleAPI: true
         };
       }
     } catch (error) {
-      logger.error('Error fetching from Google My Business:', error);
+      logger.error('Error fetching from Google Places API:', error.message);
       
-      // Fall back to the documents if Google My Business data isn't available
+      // Fall back to the documents if API data isn't available
       logger.info('Falling back to knowledge base for hours information');
       return {};
     }
   } catch (error) {
-    logger.error('Error in business hours handler:', error);
+    logger.error('Error in business hours handler:', error.message);
     return {};
   }
 }
