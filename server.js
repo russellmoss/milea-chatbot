@@ -4,7 +4,6 @@ const cors = require("cors");
 const bodyParser = require("body-parser");
 const logger = require('./utils/logger');
 const errorHandler = require('./middleware/errorHandler');
-const googleMyBusinessService = require('./services/googleMyBusinessService');
 
 // Initialize express app
 const app = express();
@@ -40,15 +39,6 @@ if (process.env.ENABLE_SCHEDULED_TASKS === 'true') {
   require('./scripts/scheduledTasks');
 }
 
-// Initialize the Google My Business service
-(async () => {
-  try {
-    await googleMyBusinessService.init();
-    logger.info('Google My Business service initialized successfully');
-  } catch (error) {
-    logger.error('Failed to initialize Google My Business service:', error);
-  }
-})();
 
 // Start server
 const PORT = process.env.PORT || 8080;

@@ -292,7 +292,6 @@ function issustainabilityQuery(query) {
   return sustainabilityTerms.some(term => query.includes(term));
 }
 
-// Add to your existing queryClassifier.js file
 
 /**
  * Check if a query is about business hours or open status
@@ -327,6 +326,7 @@ function classifyQuery(query) {
 
 module.exports = {
   issustainabilityQuery,
+  isBusinessHoursQuery,
   iswineProductionQuery,
   classifyQuery,
   isWineClubQuery,
