@@ -49,30 +49,40 @@ async function assembleContext(query, queryInfo) {
     const finalDocuments = selectDocuments(validatedGroupedDocs, scoredDocs, queryInfo);
     
     // Clean HTML content in documents when constructing context
-    const documents = finalDocuments.map(doc => ({
-      ...doc,
-      pageContent: cleanHtmlContent(doc.pageContent)
-    }));
-    
-    // Add special markers around wine documents for better recognition by the LLM
-    if (queryInfo.type === 'wine') {
-      documents.forEach((doc, index) => {
-        if (doc.metadata?.source?.toLowerCase().includes('wine_')) {
-          // Wrap the document content with special markers
-          doc.pageContent = `====== WINE DOCUMENT START ======\n\n${doc.pageContent}\n\n====== WINE DOCUMENT END ======`;
-        }
-      });
-    }
+    const documents = finalDocuments.map(doc => {
+      // Make sure we have a valid document and content
+      if (!doc || !doc.pageContent) {
+        logger.error(`Invalid document encountered: ${JSON.stringify(doc)}`);
+        return doc;
+      }
+      
+      try {
+        return {
+          ...doc,
+          pageContent: cleanHtmlContent(doc.pageContent)
+        };
+      } catch (error) {
+        logger.error(`Error cleaning HTML content: ${error.message}`);
+        return doc; // Return original doc if cleaning fails
+      }
+    });
     
     return {
       query,
       queryInfo,
       documents,
       otherVintages: validatedGroupedDocs.otherVintages || [],
-      allDocuments: scoredDocs.map(item => ({
-        ...item.doc,
-        pageContent: cleanHtmlContent(item.doc.pageContent)
-      })),
+      allDocuments: scoredDocs.map(item => {
+        try {
+          return {
+            ...item.doc,
+            pageContent: cleanHtmlContent(item.doc.pageContent)
+          };
+        } catch (error) {
+          logger.error(`Error cleaning HTML in all documents: ${error.message}`);
+          return item.doc; // Return original doc if cleaning fails
+        }
+      }),
       multipleWines: validatedGroupedDocs.uniqueWines && validatedGroupedDocs.uniqueWines.length > 1
     };
   } catch (error) {

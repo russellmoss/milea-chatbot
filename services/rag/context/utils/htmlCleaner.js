@@ -30,3 +30,7 @@ function cleanHtmlContent(content) {
   
   return processedContent;
 }
+// Make sure to export the function properly
+module.exports = { 
+  cleanHtmlContent
+};
