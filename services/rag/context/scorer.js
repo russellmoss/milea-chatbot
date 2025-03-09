@@ -10,7 +10,8 @@ const logger = require('../../../utils/logger');
  */
 function scoreDocuments(documents, query, queryInfo) {
   // Process query for keyword matching
-  const queryTerms = query.toLowerCase()
+  const queryLower = query.toLowerCase();
+  const queryTerms = queryLower
     .replace(/[^\w\s-]/g, '') // Remove special characters except spaces and hyphens
     .split(/\s+/) // Split by whitespace
     .filter(term => term.length > 3); // Only keep terms longer than 3 chars
@@ -26,7 +27,7 @@ function scoreDocuments(documents, query, queryInfo) {
     let score = calculateKeywordScore(source, content, queryTerms);
     
     // Apply domain-specific scoring boosts
-    score = applyDomainScoring(score, doc, queryInfo, source, content);
+    score = applyDomainScoring(score, doc, queryInfo, source, content, queryLower);
     
     // Extract metadata from document
     const metadata = extractDocumentMetadata(doc, source, content);
@@ -71,9 +72,10 @@ function calculateKeywordScore(source, content, queryTerms) {
  * @param {Object} queryInfo - Query classification
  * @param {string} source - Document source
  * @param {string} content - Document content
+ * @param {string} queryLower - Lowercase query string
  * @returns {number} - Modified score with domain-specific boosts
  */
-function applyDomainScoring(score, doc, queryInfo, source, content) {
+function applyDomainScoring(score, doc, queryInfo, source, content, queryLower) {
   let newScore = score;
 
   // Loyalty program scoring boosts
@@ -149,8 +151,8 @@ function applyDomainScoring(score, doc, queryInfo, source, content) {
     }
   }
   
-  if (source.includes('test_rose') && queryLower.includes('test_rose')) {
-    // Direct match for test files should have high priority
+  // Direct match for test files should have high priority
+  if (queryLower && source.includes('test_rose') && queryLower.includes('test_rose')) {
     newScore += 200;
   }
   
