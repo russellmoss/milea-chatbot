@@ -54,6 +54,16 @@ async function assembleContext(query, queryInfo) {
       pageContent: cleanHtmlContent(doc.pageContent)
     }));
     
+    // Add special markers around wine documents for better recognition by the LLM
+    if (queryInfo.type === 'wine') {
+      documents.forEach((doc, index) => {
+        if (doc.metadata?.source?.toLowerCase().includes('wine_')) {
+          // Wrap the document content with special markers
+          doc.pageContent = `====== WINE DOCUMENT START ======\n\n${doc.pageContent}\n\n====== WINE DOCUMENT END ======`;
+        }
+      });
+    }
+    
     return {
       query,
       queryInfo,

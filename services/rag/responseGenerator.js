@@ -114,8 +114,13 @@ You're provided a wine document from Milea Estate Vineyard. I need you to:
 9. Always include the exact price in dollars if available
 10. Always state the vintage year at the beginning of your response
 11. For suggestions, ONLY recommend verified wines from Milea Estate Vineyard
+12. The content may appear in raw markdown format with section headings like # and ## - these indicate sections, not HTML tags
+13. Look for wine details under headings like "Description", "Product Information", "Quick Overview"
+14. Pay special attention to descriptive paragraphs that mention flavors, aromas, or tasting experiences
+15. Assume ALL content is important wine information - there are no unimportant parts
+16. ALWAYS include the specific price in dollars if available (look for "Price" under Product Information)
 
-The document DOES contain wine descriptions - they might be in HTML format or in specific sections. Read the ENTIRE document carefully.
+The document DOES contain wine descriptions - they might be in HTML format, markdown format, or in specific sections. Read the ENTIRE document carefully.
 `;
 }
 
@@ -140,7 +145,7 @@ ${vintagesInfo ? `VINTAGE INFORMATION:\n${vintagesInfo}\n\n` : ''}
 
 USER QUERY: "${query}"
 
-Your context contains content that may have HTML formatting. Extract ALL information from it, including content within HTML tags. Pay special attention to wine descriptions, tasting notes, and characteristics that might be embedded in HTML.
+Your context contains content that may have HTML formatting or markdown formatting. Extract ALL information from it, including content within HTML tags and markdown sections. Pay special attention to wine descriptions, tasting notes, and characteristics that might be embedded in HTML or under markdown headings.
 
 Based on the context information provided, give a detailed response that addresses the user's query. 
 `;
@@ -158,7 +163,7 @@ The user is asking about a Rose wine. Make sure to extract and include ALL infor
 6. Any special production methods
 7. Food pairing suggestions if available
 
-THERE ARE wine details in the context - search carefully through all the content including HTML sections.
+THERE ARE wine details in the context - search carefully through all the content including HTML sections and markdown headings.
 `;
   }
 
@@ -252,10 +257,11 @@ IMPORTANT WINE GUIDANCE:
 2. The vintage year should be clearly stated at the beginning of your response (e.g., "The 2022 Reserve Cabernet Franc is...").
 3. DO NOT fabricate any wines that aren't in the context. Only discuss wines from the verified list.
 4. NEVER suggest a wine in "Did you mean?" unless it is on the verified list I provided above.
-5. Make sure to include ALL tasting notes and wine notes from the context, even if they appear within HTML tags.
+5. Make sure to include ALL tasting notes and wine notes from the context, even if they appear within HTML tags or markdown sections.
 6. Carefully extract ALL details about aromas, flavors, and vineyard information.
 7. If you see the markers ==== WINE DOCUMENT START ==== and ==== WINE DOCUMENT END ====, pay special attention to everything between these markers.
 8. If you find any wine characteristics in the context, ALWAYS include them in your response.
+9. Look carefully for price information in the "Product Information" section, which is typically formatted as "**Price**: $XX.XX"
 `,
     'visiting': `
 For visiting-related queries, include:
