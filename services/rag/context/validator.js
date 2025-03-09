@@ -32,6 +32,20 @@ function determineRetrievalCount(queryInfo) {
 function validateResults(results, queryInfo, query) {
   // At the start of the function
   logger.info(`Starting validation with ${results.length} initial documents for query type: ${queryInfo.type}`);
+
+  // Special handling for wine documents when querying about rosé or wine in general
+  if (queryInfo.type === 'wine') {
+    // Prioritize wine documents for any wine-related query
+    const wineOnly = results.filter(doc => 
+      doc.metadata.source.toLowerCase().startsWith('wine_')
+    );
+    
+    // Use wine-only results if available for all wine queries
+    if (wineOnly.length > 0) {
+      logger.wine(`Prioritizing ${wineOnly.length} wine-specific documents over other content types`);
+      results = wineOnly;
+    }
+  }
   
   // Special handling for test files - when a user specifically asks about a test file
   if (query.toLowerCase().includes('test_rose') || query.toLowerCase().includes('test rose')) {
@@ -94,6 +108,18 @@ function validateResults(results, queryInfo, query) {
           logger.wine(`Found ${testRoseDocs.length} test_rose docs`);
           return testRoseDocs;
         }
+      }
+      
+      // ENHANCED: First prioritize wine_ documents with rose/rosé
+      const wineRoseDocs = results.filter(doc => {
+        const source = doc.metadata.source.toLowerCase();
+        return source.startsWith('wine_') && 
+               (source.includes('rose') || source.includes('rosé'));
+      });
+      
+      if (wineRoseDocs.length > 0) {
+        logger.wine(`Found ${wineRoseDocs.length} wine_*rose* documents`);
+        return wineRoseDocs;
       }
       
       // Then try to find any rosé wine docs, INCLUDING test files (removed the wine_ restriction)

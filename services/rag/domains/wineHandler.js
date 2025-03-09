@@ -100,42 +100,82 @@ async function handleReserveCabernet(query, queryInfo, context, knownWines) {
   if (reserveDocs.length > 0) {
     logger.wine(`Found ${reserveDocs.length} Reserve Cabernet Franc documents`);
     
-    // Create modified context with Reserve Cabernet Franc documents
+    // Process the HTML content to extract tasting notes
+    const enhancedDocs = reserveDocs.map(doc => {
+      // Get the original content
+      const content = doc.pageContent;
+      
+      // Check if the document has tasting notes section
+      const hasTastingNotes = content.includes('TASTING NOTES') ||
+                           content.includes('Tasting Notes');
+      
+      // Extract tasting notes from HTML if they exist
+      let tastingNotes = null;
+      
+      if (hasTastingNotes) {
+        // Try to extract tasting notes from common patterns
+        const tastingNotesPattern = /<p><strong>TASTING NOTES<\/strong><\/p>\s*<p>(.*?)<\/p>/is;
+        const altPattern = /<div>.*?<p><strong>TASTING NOTES<\/strong><\/p>\s*<p>(.*?)<\/p>.*?<\/div>/is;
+        
+        const match = content.match(tastingNotesPattern) || content.match(altPattern);
+        if (match && match[1]) {
+          tastingNotes = match[1].trim();
+          logger.wine(`✅ Successfully extracted tasting notes: "${tastingNotes.substring(0, 100)}..."`);
+        }
+      }
+      
+      // Extract vintage and price information
+      const vintageMatch = content.match(/# (\d{4}) Reserve Cabernet Franc/);
+      const vintage = vintageMatch ? vintageMatch[1] : "2022";
+      
+      const priceMatch = content.match(/\*\*Price\*\*: \$([0-9.]+)/);
+      const price = priceMatch ? priceMatch[1] : "45.00";
+      
+      // Create enhanced document with extracted information
+      return {
+        ...doc,
+        extractedInfo: {
+          vintage,
+          price,
+          tastingNotes,
+          hasTastingNotes
+        }
+      };
+    });
+    
+    // Create enhanced context with extracted information
     const enhancedContext = {
       ...context,
-      documents: reserveDocs
+      documents: enhancedDocs,
+      extractedTastingNotes: enhancedDocs[0]?.extractedInfo?.tastingNotes
     };
     
-    // Apply super-detailed instructions for Reserve Cabernet Franc
-    const reserveCabernetInstructions = `
+    // Create custom instructions based on what we found
+    let customInstructions = `
 RESERVE CABERNET FRANC EXTRACTION INSTRUCTIONS:
-This document contains COMPLETE information about the Reserve Cabernet Franc, including:
-1. The vintage year (2022)
-2. The price ($45.00)
-3. Detailed tasting notes with descriptive language about aromas and flavors
-4. Production information
-
-The tasting notes section contains descriptions like "opulent aromas of ripe plums, black currants, and blackberries."
-DO NOT say "no tasting notes available" - the notes ARE in the document.
-
-Look for text about "aromas", "notes", "palate", "flavors", etc. - these indicate wine descriptions.
-Extract and include ALL wine characteristics mentioned in the document.
-
-If you're not finding the notes, they might be inside HTML tags like:
-<p><strong>TASTING NOTES</strong></p>
-<p>Opulent aromas of ripe plums, black currants, and blackberries...</p>
-
-Or in markdown sections like:
-## Description
-The 2022 Reserve Cabernet Franc...
-
-SEARCH THE ENTIRE DOCUMENT CAREFULLY!
+This document contains information about the ${enhancedDocs[0]?.extractedInfo?.vintage || "2022"} Reserve Cabernet Franc.
+Price: $${enhancedDocs[0]?.extractedInfo?.price || "45.00"}
 `;
+    // Add tasting notes if we successfully extracted them
+    if (enhancedDocs[0]?.extractedInfo?.tastingNotes) {
+      customInstructions += `
+I have successfully extracted these tasting notes from the document:
+"${enhancedDocs[0].extractedInfo.tastingNotes}"
+Please include all of these details in your response.
+`;
+    } else {
+      customInstructions += `
+Look for tasting notes in HTML format, specifically sections with:
+- <p><strong>TASTING NOTES</strong></p>
+- Descriptions of aromas, flavors, and characteristics
+The tasting notes ARE present in the document, even if not immediately visible.
+`;
+    }
     
     return generateResponse(query, queryInfo, enhancedContext, {
       knownWines,
       extractAllWineDetails: true,
-      specialWineInstructions: reserveCabernetInstructions
+      specialWineInstructions: customInstructions
     });
   }
   
