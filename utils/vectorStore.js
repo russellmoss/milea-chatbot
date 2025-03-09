@@ -1,10 +1,14 @@
-const { ChromaClient } = require('chromadb');
+// utils/vectorStore.js
 const { OpenAIEmbeddings } = require('@langchain/openai');
 const { Chroma } = require('@langchain/community/vectorstores/chroma');
-const path = require('path');
+const { ChromaClient } = require('chromadb');
 
-const COLLECTION_NAME = 'milea_vineyard_knowledge';
+// Use a fixed collection name
+const COLLECTION_NAME = 'wine_knowledge';
 
+/**
+ * Initialize the ChromaDB collection
+ */
 async function initializeChromaDB() {
   console.log('🔄 Initializing ChromaDB...');
   
@@ -12,35 +16,37 @@ async function initializeChromaDB() {
     path: `http://${process.env.CHROMA_DB_HOST || 'localhost'}:${process.env.CHROMA_DB_PORT || 8000}`
   });
 
-  const collectionName = COLLECTION_NAME; // Use the constant defined above
-
   try {
-    // Attempt to delete the existing collection if it exists
-    console.log(`🗑️ Deleting existing ChromaDB collection "${collectionName}"...`);
-    await client.deleteCollection({ name: collectionName });
-    console.log(`✅ Successfully deleted collection "${collectionName}"`);
-  } catch (error) {
-    // If the collection doesn't exist, this will throw an error, which we can ignore
-    console.log(`ℹ️ No existing collection "${collectionName}" found, proceeding...`);
-  }
-
-  try {
-    // Create a new collection
-    console.log(`✅ Creating new ChromaDB collection "${collectionName}"...`);
-    const collection = await client.createCollection({ 
-      name: collectionName,
-      metadata: {
-        description: 'Milea Estate Vineyard Knowledge Base'
-      }
-    });
-    console.log(`✅ Successfully initialized collection: "${collectionName}"`);
-    return collection;
+    // Check if collection exists instead of trying to delete it
+    const collections = await client.listCollections();
+    const exists = collections.some(c => c.name === COLLECTION_NAME);
+    
+    if (exists) {
+      console.log(`✅ Collection "${COLLECTION_NAME}" already exists, using it`);
+    } else {
+      // Create a new collection
+      console.log(`✅ Creating new ChromaDB collection "${COLLECTION_NAME}"...`);
+      await client.createCollection({ 
+        name: COLLECTION_NAME,
+        metadata: {
+          description: 'Wine Knowledge Base'
+        }
+      });
+      console.log(`✅ Successfully initialized collection: "${COLLECTION_NAME}"`);
+    }
+    
+    return true;
   } catch (error) {
     console.error('❌ ChromaDB Initialization Error:', error);
     throw error;
   }
 }
 
+/**
+ * Store documents in the vector database
+ * @param {Array} chunks - Document chunks to store
+ * @returns {Promise<boolean>} - Success status
+ */
 async function storeDocuments(chunks) {
   console.log(`🔄 Storing ${chunks.length} document chunks in ChromaDB...`);
   
@@ -67,6 +73,13 @@ async function storeDocuments(chunks) {
   }
 }
 
+/**
+ * Search for similar documents in the vector database
+ * @param {string} query - Query to search for
+ * @param {number} k - Number of results to return
+ * @param {Object} filter - Filter to apply
+ * @returns {Promise<Array>} - Similar documents
+ */
 async function searchSimilarDocuments(query, k = 5, filter = null) {
   console.log(`🔍 Searching for documents similar to: "${query}"`);
   
@@ -121,5 +134,6 @@ async function searchSimilarDocuments(query, k = 5, filter = null) {
 module.exports = { 
   initializeChromaDB, 
   storeDocuments, 
-  searchSimilarDocuments 
+  searchSimilarDocuments,
+  COLLECTION_NAME
 };

@@ -84,8 +84,8 @@ async function runPipeline() {
         console.log('✅ Vector database reset successfully');
         
         // Run the knowledge base initialization script
-        const { initializeKnowledgeBase } = require('./initializeKnowledgeBase');
-        await initializeKnowledgeBase();
+        const knowledgeBaseInitializer = require('./initializeKnowledgeBase');
+            await knowledgeBaseInitializer.initializeKnowledgeBase();
         console.log('✅ Knowledge base reindexed successfully');
       } catch (error) {
         console.error('❌ Error rebuilding vector embeddings:', error);
