@@ -54,3 +54,5 @@ function cleanHtmlContent(content) {
 module.exports = { 
   cleanHtmlContent
 };
+
+module.exports = require('./enhancedHtmlCleaner');

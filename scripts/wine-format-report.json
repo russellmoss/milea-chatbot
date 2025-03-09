@@ -1,0 +1,191 @@
+{
+  "total": 13,
+  "skipped": 0,
+  "fixed": 0,
+  "needsFixing": 13,
+  "errors": 0,
+  "details": [
+    {
+      "file": "wine_nv-hudson-valley-vineyards-right-bank-brut-cuv-e-bbc443ed-a809-42a1-9b81-20f44a6e2e6b.md",
+      "path": "knowledge\\wine\\wine_nv-hudson-valley-vineyards-right-bank-brut-cuv-e-bbc443ed-a809-42a1-9b81-20f44a6e2e6b.md",
+      "status": "needs_fixing",
+      "changes": {
+        "formatFixed": true,
+        "htmlRemoved": false,
+        "sectionsAdded": {
+          "wineNotes": false,
+          "tastingNotes": false,
+          "pairingRecommendations": false
+        }
+      }
+    },
+    {
+      "file": "wine_nv-hudson-valley-vineyards-right-bank-blanc-de-blanc-c028ec0d-9f83-43d3-bf4e-efee7bceb6b8.md",
+      "path": "knowledge\\wine\\wine_nv-hudson-valley-vineyards-right-bank-blanc-de-blanc-c028ec0d-9f83-43d3-bf4e-efee7bceb6b8.md",
+      "status": "needs_fixing",
+      "changes": {
+        "formatFixed": true,
+        "htmlRemoved": false,
+        "sectionsAdded": {
+          "wineNotes": false,
+          "tastingNotes": false,
+          "pairingRecommendations": false
+        }
+      }
+    },
+    {
+      "file": "wine_2024-farmhouse-gr-ner-veltliner-7e661e72-f5af-4620-8dde-ec3903d449fe.md",
+      "path": "knowledge\\wine\\wine_2024-farmhouse-gr-ner-veltliner-7e661e72-f5af-4620-8dde-ec3903d449fe.md",
+      "status": "needs_fixing",
+      "changes": {
+        "formatFixed": true,
+        "htmlRemoved": false,
+        "sectionsAdded": {
+          "wineNotes": false,
+          "tastingNotes": false,
+          "pairingRecommendations": false
+        }
+      }
+    },
+    {
+      "file": "wine_2023-reserve-chardonnay-ea6f1aab-7c85-422a-bc4a-787dfe638534.md",
+      "path": "knowledge\\wine\\wine_2023-reserve-chardonnay-ea6f1aab-7c85-422a-bc4a-787dfe638534.md",
+      "status": "needs_fixing",
+      "changes": {
+        "formatFixed": true,
+        "htmlRemoved": false,
+        "sectionsAdded": {
+          "wineNotes": false,
+          "tastingNotes": false,
+          "pairingRecommendations": false
+        }
+      }
+    },
+    {
+      "file": "wine_2023-queen-of-the-meadow-ros---83a083bd-8269-46ae-b2ae-75597fcdb86b.md",
+      "path": "knowledge\\wine\\wine_2023-queen-of-the-meadow-ros---83a083bd-8269-46ae-b2ae-75597fcdb86b.md",
+      "status": "needs_fixing",
+      "changes": {
+        "formatFixed": true,
+        "htmlRemoved": false,
+        "sectionsAdded": {
+          "wineNotes": false,
+          "tastingNotes": false,
+          "pairingRecommendations": false
+        }
+      }
+    },
+    {
+      "file": "wine_2023-hudson-heritage-clinton-vineyard-seyval-blanc-cb520bde-04a8-4cd1-a3e1-90db93aef4bc.md",
+      "path": "knowledge\\wine\\wine_2023-hudson-heritage-clinton-vineyard-seyval-blanc-cb520bde-04a8-4cd1-a3e1-90db93aef4bc.md",
+      "status": "needs_fixing",
+      "changes": {
+        "formatFixed": true,
+        "htmlRemoved": false,
+        "sectionsAdded": {
+          "wineNotes": false,
+          "tastingNotes": false,
+          "pairingRecommendations": false
+        }
+      }
+    },
+    {
+      "file": "wine_2023-four-seasons-reserve-ros--8e91fdf5-da91-4e00-a573-20ca6a934e4c.md",
+      "path": "knowledge\\wine\\wine_2023-four-seasons-reserve-ros--8e91fdf5-da91-4e00-a573-20ca6a934e4c.md",
+      "status": "needs_fixing",
+      "changes": {
+        "formatFixed": true,
+        "htmlRemoved": false,
+        "sectionsAdded": {
+          "wineNotes": false,
+          "tastingNotes": false,
+          "pairingRecommendations": false
+        }
+      }
+    },
+    {
+      "file": "wine_2023-farmhouse-chardonnay-f70b8c43-4118-47c8-b0ca-a77de44c2fe4.md",
+      "path": "knowledge\\wine\\wine_2023-farmhouse-chardonnay-f70b8c43-4118-47c8-b0ca-a77de44c2fe4.md",
+      "status": "needs_fixing",
+      "changes": {
+        "formatFixed": true,
+        "htmlRemoved": false,
+        "sectionsAdded": {
+          "wineNotes": false,
+          "tastingNotes": false,
+          "pairingRecommendations": false
+        }
+      }
+    },
+    {
+      "file": "wine_2022-vincenza-reserve-bdx-blend-1f84f233-0b56-4af9-9c20-7cb5d2960202.md",
+      "path": "knowledge\\wine\\wine_2022-vincenza-reserve-bdx-blend-1f84f233-0b56-4af9-9c20-7cb5d2960202.md",
+      "status": "needs_fixing",
+      "changes": {
+        "formatFixed": true,
+        "htmlRemoved": false,
+        "sectionsAdded": {
+          "wineNotes": false,
+          "tastingNotes": false,
+          "pairingRecommendations": false
+        }
+      }
+    },
+    {
+      "file": "wine_2022-reserve-cabernet-franc-cda583c3-4c58-4b9b-8619-0a609c814f20.md",
+      "path": "knowledge\\wine\\wine_2022-reserve-cabernet-franc-cda583c3-4c58-4b9b-8619-0a609c814f20.md",
+      "status": "needs_fixing",
+      "changes": {
+        "formatFixed": true,
+        "htmlRemoved": false,
+        "sectionsAdded": {
+          "wineNotes": false,
+          "tastingNotes": false,
+          "pairingRecommendations": false
+        }
+      }
+    },
+    {
+      "file": "wine_2022-farmhouse-cabernet-franc-4deec099-70bd-4433-8e10-46df8e6d3b4b.md",
+      "path": "knowledge\\wine\\wine_2022-farmhouse-cabernet-franc-4deec099-70bd-4433-8e10-46df8e6d3b4b.md",
+      "status": "needs_fixing",
+      "changes": {
+        "formatFixed": true,
+        "htmlRemoved": false,
+        "sectionsAdded": {
+          "wineNotes": false,
+          "tastingNotes": false,
+          "pairingRecommendations": false
+        }
+      }
+    },
+    {
+      "file": "wine_2021-farmhouse-bdx-red-blend-07ba3f32-13d3-4a3b-898a-cbf0972278ea.md",
+      "path": "knowledge\\wine\\wine_2021-farmhouse-bdx-red-blend-07ba3f32-13d3-4a3b-898a-cbf0972278ea.md",
+      "status": "needs_fixing",
+      "changes": {
+        "formatFixed": true,
+        "htmlRemoved": false,
+        "sectionsAdded": {
+          "wineNotes": false,
+          "tastingNotes": false,
+          "pairingRecommendations": false
+        }
+      }
+    },
+    {
+      "file": "test_rose.md",
+      "path": "knowledge\\wine\\test_rose.md",
+      "status": "needs_fixing",
+      "changes": {
+        "formatFixed": true,
+        "htmlRemoved": false,
+        "sectionsAdded": {
+          "wineNotes": false,
+          "tastingNotes": false,
+          "pairingRecommendations": false
+        }
+      }
+    }
+  ]
+}

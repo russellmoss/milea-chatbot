@@ -1,0 +1,23 @@
+# [VINTAGE] [WINE NAME]
+
+## Product Information
+- **Type**: Wine
+- **Price**: $XX.XX
+- **Status**: Available / Available
+- **Created**: MM/DD/YYYY
+- **Updated**: MM/DD/YYYY
+
+## Wine Notes
+[General information about the wine, including sourcing, production process, and background]
+
+## Tasting Notes
+[Detailed descriptions of aromas, flavors, body, texture, and finish]
+
+## Pairing Recommendations
+[Food pairing suggestions and serving recommendations]
+
+## Quick Overview
+[Brief high-level description of the wine in 1-2 sentences]
+
+## Details
+[Any additional details about the wine including technical specifications, aging potential, etc.]
