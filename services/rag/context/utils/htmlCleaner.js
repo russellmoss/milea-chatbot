@@ -1,71 +1,89 @@
 // services/rag/context/utils/htmlCleaner.js
 
 /**
- * Clean HTML content in document text
+ * Enhanced clean HTML content function with better handling of nested content
  * @param {string} content - Content that may contain HTML
  * @returns {string} - Cleaned content with HTML properly handled
  */
 function cleanHtmlContent(content) {
-    if (!content) return '';
+  if (!content) return '';
+  
+  // Handle complex nested HTML with a more comprehensive approach
+  
+  // Step 1: Pre-process content to preserve critical sections with clear markers
+  let processedContent = content
+    // Mark important sections for wine descriptions
+    .replace(/<strong>WINE NOTES<\/strong>/gi, '### WINE NOTES ###')
+    .replace(/<strong>Wine Notes<\/strong>/gi, '### WINE NOTES ###')
+    .replace(/<strong>TASTING NOTES<\/strong>/gi, '### TASTING NOTES ###')
+    .replace(/<strong>Tasting Notes<\/strong>/gi, '### TASTING NOTES ###')
+    .replace(/<strong>Tasting notes<\/strong>/gi, '### TASTING NOTES ###')
+    .replace(/<strong>PAIRING RECOMMENDATION<\/strong>/gi, '### PAIRING RECOMMENDATION ###')
+    .replace(/<strong>Pairing Recommendation:<\/strong>/gi, '### PAIRING RECOMMENDATION ###')
+    .replace(/<strong>ACCOLADES<\/strong>/gi, '### ACCOLADES ###')
+    .replace(/<strong>Accolades<\/strong>/gi, '### ACCOLADES ###');
+  
+  // Step 2: Handle nested divs better - replace them with newlines and spacing
+  // This handles the complex nesting structure in the wine descriptions
+  processedContent = processedContent
+    .replace(/<div>[\s\n]*<div>/gi, '\n')
+    .replace(/<\/div>[\s\n]*<\/div>/gi, '\n\n')
+    // Handle all divs (even non-nested)
+    .replace(/<div[^>]*>/gi, '')
+    .replace(/<\/div>/gi, '\n\n');
+  
+  // Step 3: Handle paragraph tags with proper spacing
+  processedContent = processedContent
+    .replace(/<p[^>]*>(.*?)<\/p>/gis, '$1\n\n')  // Using /s flag to match across lines
+    .replace(/<\/p>\s*<p[^>]*>/gi, '\n\n');
     
-    // First, preserve valuable HTML content by converting tags to markdown equivalents
-    let cleanedContent = content
-      // Handle strong tags and headers
-      .replace(/<strong>(.*?)<\/strong>/gi, '**$1**')
-      .replace(/<p><strong>(.*?)<\/strong><\/p>/gi, '**$1**\n\n')
-      .replace(/<h[1-6]>(.*?)<\/h[1-6]>/gi, '**$1**\n\n')
-      
-      // Handle nested divs with better content preservation
-      .replace(/<div>[\s\n]*<div>/gi, '\n')
-      .replace(/<\/div>[\s\n]*<\/div>/gi, '\n\n')
-      
-      // Handle paragraph tags with proper spacing
-      .replace(/<\/p>\s*<p>/gi, '\n\n')
-      .replace(/<p>(.*?)<\/p>/gi, '$1\n\n')
-      
-      // Handle line breaks
-      .replace(/<br\s*\/?>/gi, '\n')
-      
-      // Convert common HTML entities
-      .replace(/&mdash;/g, '—')
-      .replace(/&ndash;/g, '–')
-      .replace(/&nbsp;/g, ' ')
-      .replace(/&amp;/g, '&')
-      .replace(/&lt;/g, '<')
-      .replace(/&gt;/g, '>')
-      .replace(/&quot;/g, '"')
-      .replace(/&#39;/g, "'")
-      
-      // Handle accented characters
-      .replace(/&eacute;/g, "é")
-      .replace(/&egrave;/g, "è")
-      .replace(/&agrave;/g, "à")
-      .replace(/&uuml;/g, "ü")
-      .replace(/&ouml;/g, "ö")
-      .replace(/&auml;/g, "ä")
-      .replace(/&iuml;/g, "ï")
-      .replace(/&ccedil;/g, "ç")
-      .replace(/&ocirc;/g, "ô")
-      .replace(/&acirc;/g, "â")
-      .replace(/&ecirc;/g, "ê");
-
-      // Explicitly preserve strong formatting for section headings
-    cleanedContent = cleanedContent
-    .replace(/\*\*(WINE NOTES|TASTING NOTES|PAIRING RECOMMENDATION)\*\*/gi, 
-             '### $1 ###');  // Use distinctive markers
+  // Step 4: Handle other HTML formatting
+  processedContent = processedContent
+    // Handle strong/bold tags
+    .replace(/<strong>(.*?)<\/strong>/gi, '**$1**')
+    // Handle italic tags
+    .replace(/<em>(.*?)<\/em>/gi, '*$1*')
+    .replace(/<i>(.*?)<\/i>/gi, '*$1*')
+    // Handle headers
+    .replace(/<h[1-6][^>]*>(.*?)<\/h[1-6]>/gi, '**$1**\n\n')
+    // Handle line breaks
+    .replace(/<br\s*\/?>/gi, '\n')
+    // Handle span tags
+    .replace(/<span[^>]*>(.*?)<\/span>/gi, '$1');
+  
+  // Step 5: Convert common HTML entities
+  processedContent = processedContent
+    .replace(/&mdash;/g, '—')
+    .replace(/&ndash;/g, '–')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    // Handle accented characters
+    .replace(/&eacute;/g, "é")
+    .replace(/&egrave;/g, "è")
+    .replace(/&agrave;/g, "à")
+    .replace(/&uuml;/g, "ü")
+    .replace(/&ouml;/g, "ö")
+    .replace(/&auml;/g, "ä")
+    .replace(/&iuml;/g, "ï")
+    .replace(/&ccedil;/g, "ç")
+    .replace(/&ocirc;/g, "ô")
+    .replace(/&acirc;/g, "â")
+    .replace(/&ecirc;/g, "ê");
     
-    // Special handling for nested content we might miss with regex
-    // Replace any div or span tags with their content
-    cleanedContent = cleanedContent.replace(/<(div|span)[^>]*>([\s\S]*?)<\/\1>/gi, '$2');
-    
-    // Then remove any remaining HTML tags
-    cleanedContent = cleanedContent.replace(/<\/?[^>]+(>|$)/g, '');
-    
-    // Cleanup extra whitespace but preserve proper paragraph breaks
-    cleanedContent = cleanedContent.replace(/\n{3,}/g, '\n\n');
-    
-    // Remove leading/trailing whitespace
-    return cleanedContent.trim();
+  // Step 6: Final cleanup - remove any remaining HTML tags
+  processedContent = processedContent
+    .replace(/<\/?[^>]+(>|$)/g, '')
+    // Clean up excess whitespace but preserve paragraph breaks
+    .replace(/\n{3,}/g, '\n\n')
+    // Ensure section headers stand out
+    .replace(/### ([A-Z\s]+) ###/g, '\n\n### $1 ###\n');
+  
+  // Remove leading/trailing whitespace
+  return processedContent.trim();
 }
 
 module.exports = { cleanHtmlContent };

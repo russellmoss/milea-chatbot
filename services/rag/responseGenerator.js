@@ -94,26 +94,33 @@ function determineModel(queryInfo) {
 }
 
 /**
- * Enhanced wine instructions with stronger directives
+ * Enhanced wine instructions with stronger extraction guidance
  * @returns {string} - Enhanced instructions for wine extraction
  */
 function getEnhancedWineInstructions() {
   return `
-CRITICAL WINE DETAIL EXTRACTION:
+CRITICAL WINE DETAIL EXTRACTION - READ THIS CAREFULLY:
+
+You're provided a wine document from Milea Estate Vineyard. I need you to:
+
 1. ALWAYS include EVERY detail from the wine document in your response
-2. It is ABSOLUTELY REQUIRED to include complete tasting notes, aromas, flavor profiles, and all wine characteristics from the context
-3. The document DOES contain tasting notes and descriptions - if you don't see them, look for sections that might be titled "TASTING NOTES", "WINE NOTES", or similar
-4. Pay special attention to wine descriptors like color, aroma, palate, finish, which are essential information
-5. If you see ANY descriptions of the wine flavor, aroma, or characteristics, you MUST include them in your response
-6. Never reply with "the context does not provide information" if ANY wine description is available
-7. Always include the exact price in dollars if available
-8. Always state the vintage year at the beginning of your response
-9. For suggestions, ONLY recommend verified wines from Milea Estate Vineyard
+2. There ARE tasting notes in the document - look for sections labeled with "WINE NOTES", "TASTING NOTES", "Tasting Notes", etc.
+3. Search for phrases like "entices with", "aromas of", "on the palate", "flavor", "notes", "bouquet" - these indicate wine descriptions
+4. Extract ALL descriptive text about the wine's flavor, aroma, color, texture, and finish
+5. Pay special attention to sentences that mention fruits, spices, herbs, flowers, or sensory experiences
+6. Look for content inside HTML tags - many wine details are inside <p> tags or between <strong> tags
+7. If you see words like "blackberry", "cherry", "plum", "oak", "tannin", "finish", etc. - these are DEFINITELY wine characteristics
+8. NEVER reply with "no tasting notes available" or "information not provided" - the information IS in the document
+9. Always include the exact price in dollars if available
+10. Always state the vintage year at the beginning of your response
+11. For suggestions, ONLY recommend verified wines from Milea Estate Vineyard
+
+The document DOES contain wine descriptions - they might be in HTML format or in specific sections. Read the ENTIRE document carefully.
 `;
 }
 
 /**
- * Construct a prompt for the LLM
+ * Create a prompt for the LLM
  * @param {string} query - User's query
  * @param {Object} queryInfo - Query classification information
  * @param {string} contextText - Context text from documents
@@ -122,7 +129,7 @@ CRITICAL WINE DETAIL EXTRACTION:
  * @returns {string} - Constructed prompt
  */
 function constructPrompt(query, queryInfo, contextText, vintagesInfo, additionalData) {
-  // Base prompt template
+  // Base prompt template with stronger extraction guidance
   let promptTemplate = `
 You are an AI assistant for Milea Estate Vineyard, specializing in providing information about their wines, visiting experiences, and events.
 
@@ -151,8 +158,7 @@ The user is asking about a Rose wine. Make sure to extract and include ALL infor
 6. Any special production methods
 7. Food pairing suggestions if available
 
-DO NOT state that tasting notes aren't available if any of this information is present in the context.
-Be especially thorough with Rose wine information as this is a specialty wine for Milea Estate.
+THERE ARE wine details in the context - search carefully through all the content including HTML sections.
 `;
   }
 
@@ -192,7 +198,7 @@ ALWAYS end your response with a "Did you mean?" section that offers 2-3 VERIFIED
 ALWAYS end your response with a "Did you mean?" or "Also consider:" section that offers 2-3 related products or alternative queries the user might be interested in.
 `}
 
-Keep your response factual based on the provided context. Extract every detail from the context to provide comprehensive information. If information truly isn't available, acknowledge this limitation rather than making up details.
+Keep your response factual based on the provided context. Extract every detail from the context to provide comprehensive information.
 `;
 
   // If handling multiple wines, add clarification instructions
