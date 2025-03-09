@@ -30,6 +30,8 @@ async function generateResponse(query, queryInfo, context, additionalData = {}) 
       // For non-wine queries, use standard document joining
       contextText = context.documents.map(doc => doc.pageContent).join('\n\n');
     }
+
+    logger.info(`Sending context to LLM (first 200 chars): "${contextText.substring(0, 200)}..."`);
     
     // Add vintages information if available
     const vintagesInfo = context.otherVintages?.length > 0 
@@ -76,6 +78,7 @@ async function generateResponse(query, queryInfo, context, additionalData = {}) 
   }
 }
 
+
 /**
  * Determine the appropriate model based on query complexity
  * @param {Object} queryInfo - Query classification information
@@ -88,6 +91,25 @@ function determineModel(queryInfo) {
                           (queryInfo.type === 'visiting' && simpleQueryTypes.includes(queryInfo.subtype));
   
   return useSimpleModel ? "gpt-3.5-turbo" : "gpt-4";
+}
+
+/**
+ * Enhanced wine instructions with stronger directives
+ * @returns {string} - Enhanced instructions for wine extraction
+ */
+function getEnhancedWineInstructions() {
+  return `
+CRITICAL WINE DETAIL EXTRACTION:
+1. ALWAYS include EVERY detail from the wine document in your response
+2. It is ABSOLUTELY REQUIRED to include complete tasting notes, aromas, flavor profiles, and all wine characteristics from the context
+3. The document DOES contain tasting notes and descriptions - if you don't see them, look for sections that might be titled "TASTING NOTES", "WINE NOTES", or similar
+4. Pay special attention to wine descriptors like color, aroma, palate, finish, which are essential information
+5. If you see ANY descriptions of the wine flavor, aroma, or characteristics, you MUST include them in your response
+6. Never reply with "the context does not provide information" if ANY wine description is available
+7. Always include the exact price in dollars if available
+8. Always state the vintage year at the beginning of your response
+9. For suggestions, ONLY recommend verified wines from Milea Estate Vineyard
+`;
 }
 
 /**
@@ -148,6 +170,9 @@ DO NOT suggest any wines that are not on this list. If you need to suggest alter
   // Include any special wine instructions from the handler
   if (additionalData.specialWineInstructions) {
     promptTemplate += additionalData.specialWineInstructions;
+  } else if (queryInfo.type === 'wine') {
+    // Always include enhanced wine instructions for wine queries
+    promptTemplate += getEnhancedWineInstructions();
   }
 
   // Add specific instructions based on query type

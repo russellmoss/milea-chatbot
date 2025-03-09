@@ -208,17 +208,20 @@ async function handleRoseWine(query, queryInfo, context, knownWines) {
     // Special instructions for rosé wines
     const roseInstructions = `
 SPECIAL ROSÉ WINE INSTRUCTIONS:
-This is a query about a ROSÉ wine. You MUST extract and include ALL details from the context:
-1. The specific vintage year
-2. Complete tasting notes - extract EVERY detail about how the wine tastes
-3. Color descriptions (e.g., salmon pink, coral, light ruby)
-4. Aroma profiles (e.g., strawberry, watermelon, citrus, floral notes)
-5. Flavor characteristics (e.g., crisp, dry, fruity, refreshing)
-6. Any special production methods mentioned
-7. Food pairing suggestions if available
-8. Price information in exact dollar amount
+IMPORTANT: The content DOES contain tasting notes and details. You MUST carefully extract ALL information.
+Look for sections marked with "TASTING NOTES", "WINE NOTES", "PAIRING RECOMMENDATION", etc.
 
-This is a specialty wine for Milea Estate Vineyard, so provide a complete description.
+This is a query about a ROSÉ wine. Extract and include ALL details:
+1. The specific vintage year
+2. Complete tasting notes - EXTRACT EVERY DETAIL about how the wine tastes
+3. Color descriptions (e.g., "delicate pink hue")
+4. Aroma profiles (e.g., "fragrant notes of ripe strawberries, cherries")
+5. Flavor characteristics (e.g., "refreshing linearity and lively acidity")
+6. Any special production methods mentioned
+7. Food pairing suggestions
+8. Price information
+
+NEVER state "no tasting notes available" or "information not provided" unless you've thoroughly checked and CONFIRMED nothing exists.
 `;
     
     return generateResponse(query, queryInfo, enhancedContext, {

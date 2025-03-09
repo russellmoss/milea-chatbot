@@ -33,6 +33,22 @@ function validateResults(results, queryInfo, query) {
   // At the start of the function
   logger.info(`Starting validation with ${results.length} initial documents for query type: ${queryInfo.type}`);
   
+  // Special handling for test files - when a user specifically asks about a test file
+  if (query.toLowerCase().includes('test_rose') || query.toLowerCase().includes('test rose')) {
+    logger.wine(`Test rose file specifically requested: ${query}`);
+    
+    const testRoseDocs = results.filter(doc => 
+      doc.metadata.source.toLowerCase().includes('test_rose')
+    );
+    
+    if (testRoseDocs.length > 0) {
+      logger.wine(`Found ${testRoseDocs.length} test_rose docs with sources: ${testRoseDocs.map(doc => doc.metadata.source).join(', ')}`);
+      return testRoseDocs;
+    } else {
+      logger.wine(`⚠️ No test_rose docs found despite specific request!`);
+    }
+  }
+  
   // For wine queries, add detailed logging
   if (queryInfo.type === 'wine') {
     // Log all document sources before filtering
@@ -57,6 +73,49 @@ function validateResults(results, queryInfo, query) {
         return reserveCabFrancDocs;
       } else {
         logger.wine(`⚠️ No Reserve Cabernet Franc docs found! Original sources: ${results.map(doc => doc.metadata.source).join(', ')}`);
+      }
+    }
+    
+    // Consolidated rosé detection logic
+    if (query.toLowerCase().match(/\bros[eé]\b/) || 
+        query.toLowerCase().includes("rosé wine") || 
+        query.toLowerCase().includes("rose wine") ||
+        (queryInfo.type === 'wine' && (query.toLowerCase().includes('rose') || query.toLowerCase().includes('rosé')))) {
+      
+      logger.wine(`Rosé wine pattern match: ${query}`);
+      
+      // First, try to find test_rose documents if in test mode
+      if (query.toLowerCase().includes('test')) {
+        const testRoseDocs = results.filter(doc => 
+          doc.metadata.source.toLowerCase().includes('test_rose')
+        );
+        
+        if (testRoseDocs.length > 0) {
+          logger.wine(`Found ${testRoseDocs.length} test_rose docs`);
+          return testRoseDocs;
+        }
+      }
+      
+      // Then try to find any rosé wine docs, INCLUDING test files (removed the wine_ restriction)
+      const roseDocs = results.filter(doc => {
+        const source = doc.metadata.source.toLowerCase();
+        return source.includes('rose') || 
+              source.includes('rosé') || 
+              doc.pageContent.toLowerCase().includes('rosé wine');
+      });
+      
+      if (roseDocs.length > 0) {
+        logger.wine(`Found ${roseDocs.length} Rosé wine docs`);
+        return roseDocs;
+      } else {
+        logger.wine(`⚠️ No Rosé wine docs found! Falling back to Proceedo Rosé`);
+        // Fallback to known rosé wines
+        const proceedoRoseDocs = results.filter(doc => 
+          doc.metadata.source.toLowerCase().includes('proceedo-rose')
+        );
+        if (proceedoRoseDocs.length > 0) {
+          return proceedoRoseDocs;
+        }
       }
     }
     

@@ -189,11 +189,20 @@ function identifySpecificWinePattern(query) {
       ]
     },
     {
+      name: 'queen of the meadow rosé',
+    pattern: 'queen-of-the-meadow-ros',  // Update to match the actual filename format
+    matchers: [
+      {terms: ['queen', 'meadow', 'ros'], proximity: 4},
+      {terms: ['queen', 'meadow', 'rose'], proximity: 4},
+      {regex: /\bqueen\s+of\s+the\s+meadow\s+ros[eé]\b/i}
+      ]
+    },
+    {
       name: 'queen of the meadow',
       pattern: 'queen-of-the-meadow',
       matchers: [
         {terms: ['queen', 'meadow'], proximity: 3},
-        {regex: /\bqueen\s+of\s+the\s+meadow\b/}
+        {regex: /\bqueen\s+of\s+the\s+meadow\b/i}
       ]
     },
     {
@@ -320,6 +329,22 @@ function classifyQuery(query) {
       wineTerms: specificWine.name.split(' '),
       isConfirmedWine: true,
       isGenericProceedo: specificWine.isGeneric || false
+    };
+  }
+  
+  // Add special handling for rose/rosé in queryClassifier.js
+  if (queryLower.match(/\bros[eé]\b/) || 
+      queryLower.includes("rosé wine") || 
+      queryLower.includes("rose wine")) {
+    logger.wine(`Rosé wine specific query detected: "${query}"`);
+    return {
+      type: 'wine',
+      subtype: 'specific',
+      isSpecificWine: true,
+      specificWine: 'proceedo rosé', // Default to a known rosé
+      winePattern: 'proceedo-rose',
+      wineTerms: ['proceedo', 'rosé', 'rose'],
+      isConfirmedWine: true
     };
   }
   
