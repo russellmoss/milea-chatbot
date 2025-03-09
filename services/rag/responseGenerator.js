@@ -1,12 +1,10 @@
-// services/rag/responseGenerator.js
-// Enhanced response generation with strict validation and dynamic domain handling
-
+// services/rag/enhancedResponseGenerator.js
 const openai = require('../../config/openai');
 const logger = require('../../utils/logger');
 const { extractWinesFromKnowledgeBase } = require('./utils/knowledgeUtils');
 
 /**
- * Generate a response using the LLM
+ * Generate a response using the LLM with enhanced wine information extraction
  * @param {string} query - User's query
  * @param {Object} queryInfo - Query classification information
  * @param {Object} context - Context information with documents
@@ -15,34 +13,52 @@ const { extractWinesFromKnowledgeBase } = require('./utils/knowledgeUtils');
  */
 async function generateResponse(query, queryInfo, context, additionalData = {}) {
   try {
-    // Construct context from relevant documents
-    const contextText = context.documents.map(doc => doc.pageContent).join('\n\n');
+    // Construct context from relevant documents with enhanced processing
+    let contextText = '';
+    
+    // Special handling for wine documents to ensure all information is preserved
+    if (queryInfo.type === 'wine') {
+      // Prioritize primary document and extract its content in detail
+      contextText = context.documents.map((doc, index) => {
+        // Add special markers for wine document content for better extraction
+        if (index === 0 && doc.metadata?.source?.toLowerCase().includes('wine_')) {
+          return `==== WINE DOCUMENT START ====\n${doc.pageContent}\n==== WINE DOCUMENT END ====`;
+        }
+        return doc.pageContent;
+      }).join('\n\n');
+    } else {
+      // For non-wine queries, use standard document joining
+      contextText = context.documents.map(doc => doc.pageContent).join('\n\n');
+    }
     
     // Add vintages information if available
-    const vintagesInfo = context.otherVintages.length > 0 
+    const vintagesInfo = context.otherVintages?.length > 0 
       ? `Other vintages: ${context.otherVintages.map(v => `${v.vintage}${v.isAvailable ? ' (Available)' : ' (Not Available)'}`).join(', ')}`
       : '';
     
-    // ✅ IMPROVED: Extract actual wines from knowledge base for suggestion validation
+    // Extract actual wines from knowledge base for suggestion validation
     const knownWines = await extractWinesFromKnowledgeBase();
     
-    // ✅ IMPROVED: Enhance additionalData with verified information
+    // Check for Rose wine special handling
+    const isRoseQuery = query.toLowerCase().includes('rose') || 
+                       query.toLowerCase().includes('rosé') ||
+                       query.toLowerCase().includes('queen of the meadow');
+    
+    // Enhance additionalData with verified information
     const enhancedData = {
       ...additionalData,
-      knownWines
+      knownWines,
+      isRoseQuery
     };
     
     // Construct a dynamic prompt based on the query type
     const promptTemplate = constructPrompt(query, queryInfo, contextText, vintagesInfo, enhancedData);
     
-    // Determine if we can use a simpler model based on query complexity
-    const simpleQueryTypes = ['business-hours', 'visiting-hours', 'visiting-directions'];
-    const useSimpleModel = simpleQueryTypes.includes(queryInfo.type) || 
-                          (queryInfo.type === 'visiting' && simpleQueryTypes.includes(queryInfo.subtype));
+    // Use OpenAI to generate response with appropriate model
+    const model = determineModel(queryInfo);
     
-    // Use OpenAI to generate response
     const response = await openai.chat.completions.create({
-      model: useSimpleModel ? "gpt-3.5-turbo" : "gpt-4", // Use faster model for simple queries
+      model: model,
       messages: [{ role: "user", content: promptTemplate }],
       temperature: 0.2 // Lower temperature for more factual responses
     });
@@ -58,6 +74,20 @@ async function generateResponse(query, queryInfo, context, additionalData = {}) 
       sources: []
     };
   }
+}
+
+/**
+ * Determine the appropriate model based on query complexity
+ * @param {Object} queryInfo - Query classification information
+ * @returns {string} - Model name to use
+ */
+function determineModel(queryInfo) {
+  // Simple query types can use a faster model
+  const simpleQueryTypes = ['business-hours', 'visiting-hours', 'visiting-directions'];
+  const useSimpleModel = simpleQueryTypes.includes(queryInfo.type) || 
+                          (queryInfo.type === 'visiting' && simpleQueryTypes.includes(queryInfo.subtype));
+  
+  return useSimpleModel ? "gpt-3.5-turbo" : "gpt-4";
 }
 
 /**
@@ -81,12 +111,30 @@ ${vintagesInfo ? `VINTAGE INFORMATION:\n${vintagesInfo}\n\n` : ''}
 
 USER QUERY: "${query}"
 
-Your context contains some content that may have HTML formatting. Interpret any HTML content as regular text and extract all information from it. Ignore any HTML tags and focus on the content within them.
+Your context contains content that may have HTML formatting. Extract ALL information from it, including content within HTML tags. Pay special attention to wine descriptions, tasting notes, and characteristics that might be embedded in HTML.
 
 Based on the context information provided, give a detailed response that addresses the user's query. 
 `;
 
-  // ✅ IMPROVED: Add strict instruction to ONLY use verified wines
+  // Add special handling for Rose queries
+  if (additionalData.isRoseQuery) {
+    promptTemplate += `
+SPECIAL ROSE WINE INSTRUCTIONS:
+The user is asking about a Rose wine. Make sure to extract and include ALL information about the Rose wine, including:
+1. The specific vintage year
+2. Complete tasting notes
+3. Color descriptions
+4. Aroma profiles
+5. Flavor characteristics
+6. Any special production methods
+7. Food pairing suggestions if available
+
+DO NOT state that tasting notes aren't available if any of this information is present in the context.
+Be especially thorough with Rose wine information as this is a specialty wine for Milea Estate.
+`;
+  }
+
+  // Add strict instruction to ONLY use verified wines
   if (queryInfo.type === 'wine' || (additionalData && additionalData.knownWines)) {
     promptTemplate += `
 CRITICAL WINE INSTRUCTION:
@@ -95,6 +143,11 @@ ${getWineListPrompt(additionalData.knownWines)}
 
 DO NOT suggest any wines that are not on this list. If you need to suggest alternatives, ONLY use wines from this list.
 `;
+  }
+
+  // Include any special wine instructions from the handler
+  if (additionalData.specialWineInstructions) {
+    promptTemplate += additionalData.specialWineInstructions;
   }
 
   // Add specific instructions based on query type
@@ -114,7 +167,7 @@ ALWAYS end your response with a "Did you mean?" section that offers 2-3 VERIFIED
 ALWAYS end your response with a "Did you mean?" or "Also consider:" section that offers 2-3 related products or alternative queries the user might be interested in.
 `}
 
-Keep your response factual based on the provided context. If information isn't available in the context, acknowledge this limitation rather than making up details.
+Keep your response factual based on the provided context. Extract every detail from the context to provide comprehensive information. If information truly isn't available, acknowledge this limitation rather than making up details.
 `;
 
   // If handling multiple wines, add clarification instructions
@@ -126,7 +179,7 @@ Keep your response factual based on the provided context. If information isn't a
 }
 
 /**
- * ✅ NEW FUNCTION: Format the list of known wines for inclusion in the prompt
+ * Format the list of known wines for inclusion in the prompt
  * @param {Array} knownWines - List of verified wines from knowledge base
  * @returns {string} - Formatted string of wines for prompt
  */
@@ -156,20 +209,22 @@ For wine club queries, include:
 `,
     'wine': `
 For wine-related queries, include:
-- Description and tasting notes
+- COMPLETE description and tasting notes (extract ALL details from the context)
 - Price information (ALWAYS include the price if it appears in the Product Information section)
 - Vintage information (the year, typically 4 digits like 2022, or "NV" for non-vintage)
-- Any special characteristics mentioned
+- ALL special characteristics mentioned in the context
+- ALL flavor profiles and aromas described
 - Mention that wine club members receive discounts on all wine purchases
 
 IMPORTANT WINE GUIDANCE: 
 1. DO NOT mention the wine's availability status (Available/Not Available).
-2. Instead, direct customers to check the web store at https://mileaestatevineyard.com/acquire/ for current availability.
-3. The vintage year should be clearly stated at the beginning of your response (e.g., "The 2022 Reserve Cabernet Franc is...").
-4. DO NOT fabricate any wines that aren't in the context. Only discuss wines from the verified list.
-5. NEVER suggest a wine in "Did you mean?" unless it is on the verified list I provided above.
-6. Make sure to include ALL tasting notes and wine notes from the context, even if they appear within HTML tags.
-7. Carefully extract all details about aromas, flavors, and vineyard information.
+2. The vintage year should be clearly stated at the beginning of your response (e.g., "The 2022 Reserve Cabernet Franc is...").
+3. DO NOT fabricate any wines that aren't in the context. Only discuss wines from the verified list.
+4. NEVER suggest a wine in "Did you mean?" unless it is on the verified list I provided above.
+5. Make sure to include ALL tasting notes and wine notes from the context, even if they appear within HTML tags.
+6. Carefully extract ALL details about aromas, flavors, and vineyard information.
+7. If you see the markers ==== WINE DOCUMENT START ==== and ==== WINE DOCUMENT END ====, pay special attention to everything between these markers.
+8. If you find any wine characteristics in the context, ALWAYS include them in your response.
 `,
     'visiting': `
 For visiting-related queries, include:
@@ -199,7 +254,6 @@ For loyalty program queries, include:
 - Membership benefits and differences for wine club members
 - Any current promotions or limited-time offers
 `
-    // Add other domains here as needed
   };
   
   // First check if we have specific instructions for this domain
@@ -228,7 +282,7 @@ function getMultipleWinesPrompt(query, queryInfo, contextText, additionalData) {
   // Format the list of available wines
   const wineType = queryInfo.wineTerms[0] || "wine";
   
-  // ✅ IMPROVED: Only include wines that exist in our knowledge base
+  // Only include wines that exist in our knowledge base
   const verifiedOptions = additionalData.knownWines ? 
     additionalData.knownWines
       .filter(wine => wine.name.toLowerCase().includes(wineType))
@@ -241,8 +295,6 @@ You are an AI assistant for Milea Estate Vineyard. The user has asked about "${w
 
 VERIFIED WINES:
 ${verifiedOptions}
-
-Your context contains some content that may have HTML formatting. Interpret any HTML content as regular text and extract all information from it. Ignore any HTML tags and focus on the content within them.
 
 Please respond with a warm, conversational message that:
 1. Acknowledges their interest in our ${wineType} wines

@@ -399,7 +399,12 @@ function classifyQuery(query) {
     {term: 'proceedo rosé', pattern: 'proceedo-rose'},
     {term: 'proceedo rose', pattern: 'proceedo-rose'},
     {term: 'sang\'s cabernet franc', pattern: 'sangs-cabernet-franc'},
-    {term: 'hudson heritage chambourcin', pattern: 'hudson-heritage-chambourcin'}
+    {term: 'hudson heritage chambourcin', pattern: 'hudson-heritage-chambourcin'},
+    {term: 'farmhouse chardonnay', pattern: 'farmhouse-chardonnay'},
+    {term: 'reserve chardonnay', pattern: 'reserve-chardonnay'},
+    {term: 'chardonnay', pattern: 'chardonnay'},
+    {term: 'four seasons reserve rosé', pattern: 'four-seasons-reserve-ros'},
+    {term: 'queen of the meadow rosé', pattern: 'queen-of-the-meadow-ros'}
   ];
   
   // Check for specific wines in query with exact matching
