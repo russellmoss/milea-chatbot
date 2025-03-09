@@ -1,11 +1,20 @@
+// services/rag/context/utils/htmlCleaner.js
+// Enhanced version that preserves content instead of cleaning it
+
+/**
+ * Process HTML content from wine descriptions
+ * This function preserves all content rather than removing HTML tags
+ * 
+ * @param {string} content - The content to process
+ * @returns {string} - Processed content
+ */
 function cleanHtmlContent(content) {
   if (!content) return '';
   
-  // Step 1: Just remove HTML tags entirely, preserving content
-  let processedContent = content.replace(/<\/?[^>]+(>|$)/g, ' ');
-  
-  // Step 2: Handle HTML entities
-  processedContent = processedContent
+  // Instead of removing HTML tags, just preserve the content as is
+  // This allows the LLM to see and extract all information
+  // We'll only handle common HTML entities
+  let processedContent = content
     .replace(/&mdash;/g, '—')
     .replace(/&ndash;/g, '–')
     .replace(/&nbsp;/g, ' ')
@@ -23,14 +32,15 @@ function cleanHtmlContent(content) {
     .replace(/&iuml;/g, "ï")
     .replace(/&ccedil;/g, "ç");
   
-  // Step 3: Clean up whitespace
+  // Clean up excessive whitespace but preserve newlines
   processedContent = processedContent
-    .replace(/\s+/g, ' ')
+    .replace(/[ \t]+/g, ' ')    // Replace multiple spaces/tabs with a single space
+    .replace(/\n{3,}/g, '\n\n') // Replace 3+ newlines with double newlines
     .trim();
   
   return processedContent;
 }
-// Make sure to export the function properly
+
 module.exports = { 
   cleanHtmlContent
 };

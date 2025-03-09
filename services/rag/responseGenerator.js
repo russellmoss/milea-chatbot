@@ -99,30 +99,33 @@ function determineModel(queryInfo) {
  */
 function getEnhancedWineInstructions() {
   return `
-CRITICAL WINE DETAIL EXTRACTION - READ THIS CAREFULLY:
+CRITICAL WINE INFORMATION EXTRACTION - READ THIS CAREFULLY:
 
-You're provided a wine document from Milea Estate Vineyard. I need you to:
+The context contains a wine document with complete information including tasting notes, wine description, and price. 
+You MUST extract and include EVERY detail from this document.
 
-1. ALWAYS include EVERY detail from the wine document in your response
-2. There ARE tasting notes in the document - look for sections labeled with "WINE NOTES", "TASTING NOTES", "Tasting Notes", etc.
-3. Search for phrases like "entices with", "aromas of", "on the palate", "flavor", "notes", "bouquet" - these indicate wine descriptions
-4. Extract ALL descriptive text about the wine's flavor, aroma, color, texture, and finish
-5. Pay special attention to sentences that mention fruits, spices, herbs, flowers, or sensory experiences
-6. Look for content inside HTML tags - many wine details are inside <p> tags or between <strong> tags
-7. If you see words like "blackberry", "cherry", "plum", "oak", "tannin", "finish", etc. - these are DEFINITELY wine characteristics
-8. NEVER reply with "no tasting notes available" or "information not provided" - the information IS in the document
-9. Always include the exact price in dollars if available
-10. Always state the vintage year at the beginning of your response
-11. For suggestions, ONLY recommend verified wines from Milea Estate Vineyard
-12. The content may appear in raw markdown format with section headings like # and ## - these indicate sections, not HTML tags
-13. Look for wine details under headings like "Description", "Product Information", "Quick Overview"
-14. Pay special attention to descriptive paragraphs that mention flavors, aromas, or tasting experiences
-15. Assume ALL content is important wine information - there are no unimportant parts
-16. ALWAYS include the specific price in dollars if available (look for "Price" under Product Information)
+PAY SPECIAL ATTENTION:
+1. The document contains sections labeled "Wine Notes", "Tasting Notes", "Description" etc. - USE ALL THIS INFORMATION
+2. Look for descriptive language about flavors, aromas, and characteristics
+3. Price information is always available in the "Product Information" section
+4. DO NOT say "no tasting notes available" - the notes ARE in the document
+5. Wine details may appear in HTML format like <p><strong>Tasting Notes</strong></p>
+6. Wine sections may be presented with markdown headings like "## Description"
+7. Extract ANY wine characteristics mentioned (e.g., "opulent aromas", "ripe plums", etc.)
+8. Include the vintage year at the beginning of your response
+9. Extract ALL accolades or awards mentioned
 
-The document DOES contain wine descriptions - they might be in HTML format, markdown format, or in specific sections. Read the ENTIRE document carefully.
+DOCUMENT STRUCTURE:
+Wine markdown files follow this pattern:
+1. Title section with vintage and name - always extract this
+2. Product Information section with price - always include this exact price
+3. Description section with tasting notes - always extract ALL details here
+4. Quick Overview section - always include this
+
+The documents contain COMPLETE information - the tasting notes are DEFINITELY present - search thoroughly!
 `;
 }
+
 
 /**
  * Create a prompt for the LLM
@@ -355,5 +358,6 @@ ${contextText}
 }
 
 module.exports = {
-  generateResponse
+  generateResponse,
+  getEnhancedWineInstructions
 };

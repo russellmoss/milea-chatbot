@@ -1,11 +1,13 @@
-// services/rag/domains/wineHandler.js enhancement
+// services/rag/domains/wineHandler.js
+// Fixed implementation to properly extract all wine information
 
 const logger = require('../../../utils/logger');
 const { generateResponse } = require('../responseGenerator');
 const { extractWinesFromKnowledgeBase } = require('../utils/knowledgeUtils');
+const { getEnhancedWineInstructions } = require('./wineInstructions');
 
 /**
- * Enhanced handler for wine-related queries with better document inspection
+ * Improved handler for wine-related queries
  * @param {string} query - User's query
  * @param {Object} queryInfo - Query classification information
  * @param {Object} context - Context information
@@ -15,12 +17,26 @@ async function handleQuery(query, queryInfo, context) {
   try {
     logger.wine(`Processing wine query: "${query}" with ${context.documents.length} documents`);
     
-    // Enhanced logging for document inspection
+    // Log the documents to aid debugging
     if (context.documents.length > 0) {
       context.documents.forEach((doc, index) => {
         if (index < 3) { // Limit to first 3 for clarity
           logger.wine(`Document ${index+1}: Source=${doc.metadata.source}`);
-          logger.wine(`  First 100 chars: ${doc.pageContent.substring(0, 100).replace(/\n/g, ' ')}...`);
+          
+          // Log more of the document content to see what's being extracted
+          const contentPreview = doc.pageContent.substring(0, 200).replace(/\n/g, ' ');
+          logger.wine(`  First 200 chars: ${contentPreview}...`);
+          
+          // Check for key sections
+          if (doc.pageContent.includes("Tasting Notes")) {
+            logger.wine(`  ✅ Document contains "Tasting Notes" section`);
+          }
+          if (doc.pageContent.includes("Wine Notes")) {
+            logger.wine(`  ✅ Document contains "Wine Notes" section`);
+          }
+          if (doc.pageContent.includes("Price")) {
+            logger.wine(`  ✅ Document contains price information`);
+          }
         }
       });
     } else {
@@ -31,32 +47,34 @@ async function handleQuery(query, queryInfo, context) {
     const knownWines = await extractWinesFromKnowledgeBase();
     logger.wine(`Loaded ${knownWines.length} verified wines from knowledge base`);
     
-    // Enhanced special handling for wine subtypes
-    if (queryInfo.isSpecificWine) {
-      // Special case for Proceedo wines
-      if (queryInfo.specificWine.includes('proceedo')) {
-        return handleProceedoWine(query, queryInfo, context, knownWines);
-      }
-      
-      // Special case for Reserve Cabernet Franc
-      if (queryInfo.specificWine.includes('reserve cabernet franc')) {
-        return handleReserveCabernet(query, queryInfo, context, knownWines);
-      }
-      
-      // Special case for Rosé wines
-      if (queryInfo.specificWine.includes('rosé') || 
-          queryInfo.specificWine.includes('rose')) {
-        return handleRoseWine(query, queryInfo, context, knownWines);
-      }
+    // Special handling for Reserve Cabernet Franc
+    if (queryInfo.isSpecificWine && queryInfo.specificWine.includes('reserve cabernet franc')) {
+      return handleReserveCabernet(query, queryInfo, context, knownWines);
     }
     
-    // For generic "type of wine" queries (e.g., "cabernet franc wines")
+    // Special handling for Farmhouse Cabernet Franc
+    if (queryInfo.isSpecificWine && queryInfo.specificWine.includes('farmhouse cabernet franc')) {
+      return handleFarmhouseCabernet(query, queryInfo, context, knownWines);
+    }
+    
+    // Special case for Proceedo wines
+    if (queryInfo.isSpecificWine && queryInfo.specificWine.includes('proceedo')) {
+      return handleProceedoWine(query, queryInfo, context, knownWines);
+    }
+    
+    // Special case for Rosé wines
+    if (queryInfo.isSpecificWine && 
+        (queryInfo.specificWine.includes('rosé') || queryInfo.specificWine.includes('rose'))) {
+      return handleRoseWine(query, queryInfo, context, knownWines);
+    }
+    
+    // For generic wine type queries (e.g., "cabernet franc wines")
     if (queryInfo.subtype === 'generic' && queryInfo.wineTerms.length > 0) {
       logger.wine(`Handling generic wine query with terms: ${queryInfo.wineTerms.join(', ')}`);
       return handleGenericWineTypeQuery(query, queryInfo, context, knownWines);
     }
     
-    // Default to standard response generation with all known wines
+    // Default to standard response generation with enhanced wine instructions
     return generateResponse(query, queryInfo, context, { 
       knownWines,
       extractAllWineDetails: true,
@@ -69,25 +87,131 @@ async function handleQuery(query, queryInfo, context) {
 }
 
 /**
- * Enhanced instructions to ensure extraction of all wine details
- * @returns {string} - Enhanced wine instructions for LLM
+ * Handle Reserve Cabernet Franc queries with improved extraction
  */
-function getEnhancedWineInstructions() {
-  return `
-CRITICAL WINE DETAIL EXTRACTION:
-1. You MUST extract and include ALL details from the wine document
-2. Include ALL tasting notes, aromas, flavor profiles, and characteristics
-3. Extract ALL information even if it's embedded in HTML tags
-4. Pay special attention to descriptions of color, aroma, taste, and finish
-5. NEVER state "no tasting notes available" if any form of description exists
-6. ALWAYS include the specific price in dollars if available
-7. ALWAYS state the vintage year at the beginning of your response
-8. For suggestions, ONLY recommend actual wines from Milea Estate Vineyard
+async function handleReserveCabernet(query, queryInfo, context, knownWines) {
+  logger.wine(`Special handling for Reserve Cabernet Franc query`);
+  
+  // Filter for Reserve Cabernet Franc documents
+  const reserveDocs = context.documents.filter(doc => 
+    doc.metadata.source.toLowerCase().includes('reserve-cabernet-franc')
+  );
+  
+  if (reserveDocs.length > 0) {
+    logger.wine(`Found ${reserveDocs.length} Reserve Cabernet Franc documents`);
+    
+    // Create modified context with Reserve Cabernet Franc documents
+    const enhancedContext = {
+      ...context,
+      documents: reserveDocs
+    };
+    
+    // Apply super-detailed instructions for Reserve Cabernet Franc
+    const reserveCabernetInstructions = `
+RESERVE CABERNET FRANC EXTRACTION INSTRUCTIONS:
+This document contains COMPLETE information about the Reserve Cabernet Franc, including:
+1. The vintage year (2022)
+2. The price ($45.00)
+3. Detailed tasting notes with descriptive language about aromas and flavors
+4. Production information
+
+The tasting notes section contains descriptions like "opulent aromas of ripe plums, black currants, and blackberries."
+DO NOT say "no tasting notes available" - the notes ARE in the document.
+
+Look for text about "aromas", "notes", "palate", "flavors", etc. - these indicate wine descriptions.
+Extract and include ALL wine characteristics mentioned in the document.
+
+If you're not finding the notes, they might be inside HTML tags like:
+<p><strong>TASTING NOTES</strong></p>
+<p>Opulent aromas of ripe plums, black currants, and blackberries...</p>
+
+Or in markdown sections like:
+## Description
+The 2022 Reserve Cabernet Franc...
+
+SEARCH THE ENTIRE DOCUMENT CAREFULLY!
 `;
+    
+    return generateResponse(query, queryInfo, enhancedContext, {
+      knownWines,
+      extractAllWineDetails: true,
+      specialWineInstructions: reserveCabernetInstructions
+    });
+  }
+  
+  // If no documents found, fall back to original context
+  logger.wine(`⚠️ No Reserve Cabernet Franc documents found, using original context`);
+  return generateResponse(query, queryInfo, context, {
+    knownWines,
+    extractAllWineDetails: true,
+    specialWineInstructions: getEnhancedWineInstructions()
+  });
 }
 
 /**
- * Handle Proceedo wine queries
+ * Handle Farmhouse Cabernet Franc queries with improved extraction
+ */
+async function handleFarmhouseCabernet(query, queryInfo, context, knownWines) {
+  logger.wine(`Special handling for Farmhouse Cabernet Franc query`);
+  
+  // Filter for Farmhouse Cabernet Franc documents
+  const farmhouseDocs = context.documents.filter(doc => 
+    doc.metadata.source.toLowerCase().includes('farmhouse-cabernet-franc')
+  );
+  
+  if (farmhouseDocs.length > 0) {
+    logger.wine(`Found ${farmhouseDocs.length} Farmhouse Cabernet Franc documents`);
+    
+    // Create modified context with Farmhouse Cabernet Franc documents
+    const enhancedContext = {
+      ...context,
+      documents: farmhouseDocs
+    };
+    
+    // Apply super-detailed instructions for Farmhouse Cabernet Franc
+    const farmhouseCabernetInstructions = `
+FARMHOUSE CABERNET FRANC EXTRACTION INSTRUCTIONS:
+This document contains COMPLETE information about the Farmhouse Cabernet Franc, including:
+1. The vintage year (2022)
+2. The price ($32.00)
+3. Detailed tasting notes with descriptive language about aromas and flavors
+4. Production information and accolades (92 Points - Wine Enthusiast)
+
+The tasting notes section contains descriptions like "entices with a bouquet of vibrant red cherries, accompanied by delicate notes of graphite and a subtle minerality."
+DO NOT say "no tasting notes available" - the notes ARE in the document.
+
+Look for text about "bouquet", "notes", "palate", "flavors", etc. - these indicate wine descriptions.
+Extract and include ALL wine characteristics mentioned in the document.
+
+If you're not finding the notes, they might be inside HTML tags like:
+<p><strong>Tasting Notes</strong></p>
+<p><span style="font-weight: 400;">The 2022 Farmhouse Cabernet Franc entices with a bouquet...</span></p>
+
+Or in markdown sections like:
+## Description
+The 2022 Farmhouse Cabernet Franc...
+
+SEARCH THE ENTIRE DOCUMENT CAREFULLY!
+`;
+    
+    return generateResponse(query, queryInfo, enhancedContext, {
+      knownWines,
+      extractAllWineDetails: true,
+      specialWineInstructions: farmhouseCabernetInstructions
+    });
+  }
+  
+  // If no documents found, fall back to original context
+  logger.wine(`⚠️ No Farmhouse Cabernet Franc documents found, using original context`);
+  return generateResponse(query, queryInfo, context, {
+    knownWines,
+    extractAllWineDetails: true,
+    specialWineInstructions: getEnhancedWineInstructions()
+  });
+}
+
+/**
+ * Handle Proceedo wine queries with improved extraction
  */
 async function handleProceedoWine(query, queryInfo, context, knownWines) {
   logger.wine(`Special handling for Proceedo wine query`);
@@ -147,43 +271,7 @@ async function handleProceedoWine(query, queryInfo, context, knownWines) {
 }
 
 /**
- * Handle Reserve Cabernet Franc queries 
- */
-async function handleReserveCabernet(query, queryInfo, context, knownWines) {
-  logger.wine(`Special handling for Reserve Cabernet Franc query`);
-  
-  // Filter for Reserve Cabernet Franc documents
-  const reserveDocs = context.documents.filter(doc => 
-    doc.metadata.source.toLowerCase().includes('reserve-cabernet-franc')
-  );
-  
-  if (reserveDocs.length > 0) {
-    logger.wine(`Found ${reserveDocs.length} Reserve Cabernet Franc documents`);
-    
-    // Create modified context with Reserve Cabernet Franc documents
-    const enhancedContext = {
-      ...context,
-      documents: reserveDocs
-    };
-    
-    return generateResponse(query, queryInfo, enhancedContext, {
-      knownWines,
-      extractAllWineDetails: true,
-      specialWineInstructions: getEnhancedWineInstructions()
-    });
-  }
-  
-  // If no documents found, fall back to original context
-  logger.wine(`⚠️ No Reserve Cabernet Franc documents found, using original context`);
-  return generateResponse(query, queryInfo, context, {
-    knownWines,
-    extractAllWineDetails: true,
-    specialWineInstructions: getEnhancedWineInstructions()
-  });
-}
-
-/**
- * Handle Rosé wine queries
+ * Handle Rosé wine queries with improved extraction
  */
 async function handleRoseWine(query, queryInfo, context, knownWines) {
   logger.wine(`Special handling for Rosé wine query`);
@@ -208,20 +296,28 @@ async function handleRoseWine(query, queryInfo, context, knownWines) {
     // Special instructions for rosé wines
     const roseInstructions = `
 SPECIAL ROSÉ WINE INSTRUCTIONS:
-IMPORTANT: The content DOES contain tasting notes and details. You MUST carefully extract ALL information.
-Look for sections marked with "TASTING NOTES", "WINE NOTES", "PAIRING RECOMMENDATION", etc.
-
-This is a query about a ROSÉ wine. Extract and include ALL details:
+This document contains COMPLETE information about a Rosé wine, including:
 1. The specific vintage year
-2. Complete tasting notes - EXTRACT EVERY DETAIL about how the wine tastes
-3. Color descriptions (e.g., "delicate pink hue")
-4. Aroma profiles (e.g., "fragrant notes of ripe strawberries, cherries")
-5. Flavor characteristics (e.g., "refreshing linearity and lively acidity")
-6. Any special production methods mentioned
-7. Food pairing suggestions
-8. Price information
+2. The price
+3. Detailed descriptions of its appearance, aroma, taste, and finish
 
-NEVER state "no tasting notes available" or "information not provided" unless you've thoroughly checked and CONFIRMED nothing exists.
+The document DEFINITELY contains descriptions like:
+- Color descriptions (e.g., "delicate pink hue")
+- Aroma profiles (e.g., "notes of strawberries, cherries")
+- Flavor characteristics (e.g., "refreshing linearity and lively acidity")
+
+DO NOT say "no tasting notes available" - the notes ARE in the document.
+
+Look for ANY descriptive language about the wine's characteristics.
+
+If you're not finding the notes, they might be inside HTML tags like:
+<p>Experience the pinnacle of Hudson Valley's rosé excellence...</p>
+
+Or in markdown sections like:
+## Description
+Admire the delicate pink hue of this exceptional rosé...
+
+SEARCH THE ENTIRE DOCUMENT CAREFULLY!
 `;
     
     return generateResponse(query, queryInfo, enhancedContext, {
@@ -264,7 +360,7 @@ async function handleGenericWineTypeQuery(query, queryInfo, context, knownWines)
     ).join('\n');
     
     return {
-      response: `I see you're interested in our ${wineType} wines! We have several options you might enjoy:\n\n${wineList}\n\nWhich specific wine would you like to know more about?`,
+      response: `I see you're interested in our ${wineType} wines! 🍷 We have several options you might enjoy:\n\n${wineList}\n\nWhich specific wine would you like to know more about?`,
       sources: []
     };
   }
