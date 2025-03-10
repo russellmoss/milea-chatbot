@@ -1,4 +1,4 @@
-// Updated server.js - Add the subscribe route
+// Updated server.js - Add the club signup route
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
@@ -17,7 +17,8 @@ app.use(bodyParser.json());
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/customer', require('./routes/customers'));
 app.use('/api/commerce7', require('./routes/commerce7'));
-app.use('/api/subscribe', require('./routes/subscribe')); // New subscribe route
+app.use('/api/commerce7/club-signup', require('./routes/clubSignup')); // New club signup route
+app.use('/api/subscribe', require('./routes/subscribe'));
 app.use('/chat', require('./routes/chat'));
 app.use('/rag-chat', require('./routes/rag'));
 app.use('/api/business', require('./routes/businessInfo'));

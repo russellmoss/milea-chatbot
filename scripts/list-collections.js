@@ -14,18 +14,22 @@ async function listCollections() {
     const collections = await client.listCollections();
     console.log(`📊 Found ${collections.length} collections:`);
     
-    for (const collection of collections) {
-      console.log(`  - Name: ${collection.name || 'unnamed'}`);
-      console.log(`    ID: ${collection.id}`);
+    for (let i = 0; i < collections.length; i++) {
+      const collection = collections[i];
+      console.log(`\nCollection ${i+1}:`);
+      
+      // Check if collection is a string (collection name) or an object
+      const collectionName = typeof collection === 'string' ? collection : collection.name;
+      console.log(`  Name: ${collectionName || 'unnamed'}`);
+      
       try {
-        const coll = await client.getCollection({ id: collection.id });
+        // Try to get collection by name
+        const coll = await client.getCollection({ name: collectionName });
         const count = await coll.count();
-        console.log(`    Documents: ${count}`);
+        console.log(`  Documents: ${count}`);
       } catch (error) {
-        console.log(`    Error getting count: ${error.message}`);
+        console.log(`  Error getting count: ${error.message}`);
       }
-      console.log(`    Metadata: ${JSON.stringify(collection.metadata || {})}`);
-      console.log('');
     }
   } catch (error) {
     console.error(`❌ Error listing collections: ${error.message}`);

@@ -12,42 +12,59 @@ async function testChromaConnection() {
     
     // Get list of collections
     const collections = await client.listCollections();
-    console.log(`✅ Successfully connected to ChromaDB!`);
-    console.log(`📊 Found ${collections.length} collections:`);
-    collections.forEach(collection => {
-      console.log(`  - ${collection.name} (${collection.id})`);
-    });
+    console.log(`✅ Found ${collections.length} collections`);
     
-    // Check for our target collection
-    const targetCollection = collections.find(c => c.name === 'milea_vineyard_knowledge');
-    if (targetCollection) {
-      console.log(`✅ Found target collection: milea_vineyard_knowledge (${targetCollection.id})`);
+    // Examine each collection more deeply
+    for (let i = 0; i < collections.length; i++) {
+      const collection = collections[i];
+      console.log(`\nCollection ${i+1}:`);
+      console.log(`  Raw data:`, JSON.stringify(collection));
       
-      // Get collection details
-      const collection = await client.getCollection({
-        name: 'milea_vineyard_knowledge'
-      });
+      // Try to get any IDs from the collection
+      if (collection.id) {
+        try {
+          const detailedCollection = await client.getCollection({
+            id: collection.id
+          });
+          console.log(`  Retrieved by ID: ${detailedCollection ? 'Success' : 'Failed'}`);
+        } catch (e) {
+          console.log(`  Error retrieving by ID: ${e.message}`);
+        }
+      }
       
-      const count = await collection.count();
-      console.log(`📚 Collection has ${count} documents`);
-    } else {
-      console.log(`❌ Target collection 'milea_vineyard_knowledge' not found`);
-      
-      // Create the collection
-      console.log(`🔄 Creating collection...`);
-      await client.createCollection({
-        name: 'milea_vineyard_knowledge',
-        metadata: { description: 'Milea Estate Vineyard Knowledge Base' }
-      });
-      console.log(`✅ Collection created`);
+      // Try other properties that might contain identification
+      const possibleIdentifiers = ['name', 'uuid', 'collectionName', 'collection_name'];
+      for (const key of possibleIdentifiers) {
+        if (collection[key]) {
+          console.log(`  Possible identifier found - ${key}: ${collection[key]}`);
+          try {
+            const params = {};
+            params[key] = collection[key];
+            const detailedCollection = await client.getCollection(params);
+            console.log(`  Retrieved using ${key}: ${detailedCollection ? 'Success' : 'Failed'}`);
+          } catch (e) {
+            console.log(`  Error retrieving using ${key}: ${e.message}`);
+          }
+        }
+      }
     }
+    
+    // Try to directly access our expected collection
+    try {
+      const wineCollection = await client.getCollection({
+        name: 'wine_knowledge'
+      });
+      console.log('\nAttempting to access wine_knowledge collection:');
+      console.log(`  Success: ${!!wineCollection}`);
+      const count = await wineCollection.count();
+      console.log(`  Document count: ${count}`);
+    } catch (e) {
+      console.log(`  Error accessing wine_knowledge: ${e.message}`);
+    }
+    
   } catch (error) {
     console.error(`❌ ChromaDB connection error: ${error.message}`);
-    if (error.message.includes('ECONNREFUSED')) {
-      console.error('  This suggests ChromaDB server is not running or not accessible.');
-      console.error('  Please ensure ChromaDB server is started.');
-    }
   }
 }
 
-testChromaConnection().catch(console.error);
+testChromaConnection();
