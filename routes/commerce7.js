@@ -334,15 +334,30 @@ async function findCustomerByEmail(email) {
  */
 async function createCustomer(customerData) {
   try {
+    // Format phone number if provided
+    let formattedPhone = null;
+    if (customerData.phone) {
+      formattedPhone = customerData.phone.replace(/\D/g, "");
+      if (formattedPhone.length === 10) {
+        formattedPhone = `+1${formattedPhone}`;
+      }
+    }
+    
+    // Construct properly formatted payload
     const payload = {
       firstName: customerData.firstName,
       lastName: customerData.lastName,
-      email: customerData.email,
-      phone: customerData.phone,
+      emails: [{ email: customerData.email }], // Corrected format
+      phones: formattedPhone ? [{ phone: formattedPhone }] : [], // Corrected format
+      password: customerData.password,
+      countryCode: "US", // Added required field
       metaData: {
         source: 'wine_club_chatbot'
       }
     };
+    
+    // Log the payload for debugging
+    logger.info('Creating customer with payload:', JSON.stringify(payload, null, 2));
     
     const response = await axios.post(
       'https://api.commerce7.com/v1/customer',
@@ -350,9 +365,21 @@ async function createCustomer(customerData) {
       authConfig
     );
     
+    logger.info('Customer created successfully with ID:', response.data.id);
     return response.data;
   } catch (error) {
-    logger.error('Error creating customer:', error);
+    logger.error('Error creating customer:', error.message);
+    
+    // Log detailed error information
+    if (error.response && error.response.data) {
+      logger.error('Error response data:', JSON.stringify(error.response.data, null, 2));
+      
+      // If there are specific validation errors, log them
+      if (error.response.data.errors) {
+        logger.error('Validation errors:', error.response.data.errors);
+      }
+    }
+    
     throw error;
   }
 }
@@ -365,14 +392,27 @@ async function createCustomer(customerData) {
  */
 async function updateCustomer(customerId, customerData) {
   try {
+    // Format phone number if provided
+    let formattedPhone = null;
+    if (customerData.phone) {
+      formattedPhone = customerData.phone.replace(/\D/g, "");
+      if (formattedPhone.length === 10) {
+        formattedPhone = `+1${formattedPhone}`;
+      }
+    }
+    
+    // Build the update payload
     const payload = {
       firstName: customerData.firstName,
       lastName: customerData.lastName,
-      phone: customerData.phone,
+      phones: formattedPhone ? [{ phone: formattedPhone }] : [], // Corrected format
+      countryCode: "US", // Added required field
       metaData: {
         source: 'wine_club_chatbot_update'
       }
     };
+    
+    logger.info(`Updating customer ${customerId} with payload:`, JSON.stringify(payload, null, 2));
     
     const response = await axios.put(
       `https://api.commerce7.com/v1/customer/${customerId}`,
@@ -382,7 +422,13 @@ async function updateCustomer(customerId, customerData) {
     
     return response.data;
   } catch (error) {
-    logger.error(`Error updating customer ${customerId}:`, error);
+    logger.error(`Error updating customer ${customerId}:`, error.message);
+    
+    // Log detailed error information
+    if (error.response && error.response.data) {
+      logger.error('Error details:', JSON.stringify(error.response.data, null, 2));
+    }
+    
     throw error;
   }
 }
@@ -447,6 +493,13 @@ async function getCustomerAddresses(customerId) {
  */
 async function createCustomerAddress(customerId, addressData) {
   try {
+    // Ensure countryCode is provided
+    if (!addressData.countryCode) {
+      addressData.countryCode = "US";
+    }
+    
+    logger.info(`Creating address for customer ${customerId}:`, JSON.stringify(addressData, null, 2));
+    
     const response = await axios.post(
       `https://api.commerce7.com/v1/customer/${customerId}/address`,
       addressData,
@@ -455,7 +508,13 @@ async function createCustomerAddress(customerId, addressData) {
     
     return response.data;
   } catch (error) {
-    logger.error(`Error creating address for customer ${customerId}:`, error);
+    logger.error(`Error creating address for customer ${customerId}:`, error.message);
+    
+    // Log detailed error information
+    if (error.response && error.response.data) {
+      logger.error('Error details:', JSON.stringify(error.response.data, null, 2));
+    }
+    
     throw error;
   }
 }
@@ -469,6 +528,13 @@ async function createCustomerAddress(customerId, addressData) {
  */
 async function updateCustomerAddress(customerId, addressId, addressData) {
   try {
+    // Ensure countryCode is provided
+    if (!addressData.countryCode) {
+      addressData.countryCode = "US";
+    }
+    
+    logger.info(`Updating address ${addressId} for customer ${customerId}:`, JSON.stringify(addressData, null, 2));
+    
     const response = await axios.put(
       `https://api.commerce7.com/v1/customer/${customerId}/address/${addressId}`,
       addressData,
@@ -477,7 +543,13 @@ async function updateCustomerAddress(customerId, addressId, addressData) {
     
     return response.data;
   } catch (error) {
-    logger.error(`Error updating address ${addressId} for customer ${customerId}:`, error);
+    logger.error(`Error updating address ${addressId} for customer ${customerId}:`, error.message);
+    
+    // Log detailed error information
+    if (error.response && error.response.data) {
+      logger.error('Error details:', JSON.stringify(error.response.data, null, 2));
+    }
+    
     throw error;
   }
 }
@@ -499,6 +571,8 @@ async function createClubMembership(customerId, membershipData) {
       }
     };
     
+    logger.info(`Creating club membership for customer ${customerId}:`, JSON.stringify(payload, null, 2));
+    
     const response = await axios.post(
       `https://api.commerce7.com/v1/customer/${customerId}/club-membership`,
       payload,
@@ -507,7 +581,13 @@ async function createClubMembership(customerId, membershipData) {
     
     return response.data;
   } catch (error) {
-    logger.error(`Error creating club membership for customer ${customerId}:`, error);
+    logger.error(`Error creating club membership for customer ${customerId}:`, error.message);
+    
+    // Log detailed error information
+    if (error.response && error.response.data) {
+      logger.error('Error details:', JSON.stringify(error.response.data, null, 2));
+    }
+    
     throw error;
   }
 }
