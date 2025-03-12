@@ -7,14 +7,10 @@
 - **Created**: 11/12/2024
 - **Updated**: 11/13/2024
 
+## Description
+No description available.
 
 
-
-
-
-
-## Quick Overview
-A distinctive NV Hudson Valley Vineyards Right Bank Blanc De Blanc from Milea Estate Vineyard.
 
 ## Details
 No additional details available.

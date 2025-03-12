@@ -264,6 +264,11 @@ router.post('/club-signup', async (req, res) => {
     const existingCustomer = await findCustomerByEmail(clubSignupData.email);
     
     let customerId;
+    let customerData = {
+      firstName: clubSignupData.firstName,
+      lastName: clubSignupData.lastName
+    };
+    
     if (existingCustomer) {
       // Update existing customer
       logger.info(`Updating existing customer: ${existingCustomer.id}`);
@@ -276,8 +281,8 @@ router.post('/club-signup', async (req, res) => {
       customerId = newCustomer.id;
     }
     
-    // Handle addresses
-    await processAddresses(customerId, clubSignupData.addresses);
+    // Handle addresses - passing customer data for name information
+    await processAddresses(customerId, clubSignupData.addresses, customerData);
     
     // Handle club membership
     const clubMembership = await createClubMembership(customerId, clubSignupData.clubMembership);
@@ -299,7 +304,9 @@ router.post('/club-signup', async (req, res) => {
     
     res.status(statusCode).json({
       success: false,
-      message: errorMessage
+      message: errorMessage,
+      details: error.response?.data || error.message,
+      statusCode: statusCode
     });
   }
 });
@@ -437,9 +444,10 @@ async function updateCustomer(customerId, customerData) {
  * Process and manage customer addresses
  * @param {string} customerId - Customer ID
  * @param {Array} addresses - Addresses to process
+ * @param {Object} customerData - Customer information for name fields
  * @returns {Promise<Array>} - Processed addresses
  */
-async function processAddresses(customerId, addresses) {
+async function processAddresses(customerId, addresses, customerData) {
   try {
     // Get existing addresses
     const existingAddresses = await getCustomerAddresses(customerId);
@@ -447,8 +455,17 @@ async function processAddresses(customerId, addresses) {
     // Process each address
     const results = [];
     for (const address of addresses) {
-      // Check if same address type exists
-      const existingAddress = existingAddresses.find(addr => addr.type === address.type);
+      // Add customer name information to each address if not present
+      if (customerData && (!address.firstName || !address.lastName)) {
+        address.customerFirstName = customerData.firstName;
+        address.customerLastName = customerData.lastName;
+      }
+      
+      // Check if same address type exists (if type is being used internally)
+      let existingAddress = null;
+      if (address.type) {
+        existingAddress = existingAddresses.find(addr => addr.type === address.type);
+      }
       
       if (existingAddress) {
         // Update existing address
@@ -498,11 +515,25 @@ async function createCustomerAddress(customerId, addressData) {
       addressData.countryCode = "US";
     }
     
-    logger.info(`Creating address for customer ${customerId}:`, JSON.stringify(addressData, null, 2));
+    // Build the proper payload for Commerce7 API
+    // Remove 'type' property and add required firstName and lastName
+    const payload = {
+      firstName: addressData.firstName || addressData.customerFirstName || "", // Get from address or customer data
+      lastName: addressData.lastName || addressData.customerLastName || "",    // Get from address or customer data
+      address: addressData.address,
+      address2: addressData.address2 || "",
+      city: addressData.city,
+      stateCode: addressData.stateCode,
+      zipCode: addressData.zipCode,
+      countryCode: addressData.countryCode,
+      isDefault: addressData.isDefault || false
+    };
+    
+    logger.info(`Creating address for customer ${customerId}:`, JSON.stringify(payload, null, 2));
     
     const response = await axios.post(
       `https://api.commerce7.com/v1/customer/${customerId}/address`,
-      addressData,
+      payload,
       authConfig
     );
     
@@ -533,11 +564,24 @@ async function updateCustomerAddress(customerId, addressId, addressData) {
       addressData.countryCode = "US";
     }
     
-    logger.info(`Updating address ${addressId} for customer ${customerId}:`, JSON.stringify(addressData, null, 2));
+    // Build the proper payload, removing 'type' and adding required firstName and lastName
+    const payload = {
+      firstName: addressData.firstName || addressData.customerFirstName || "", // Get from address or customer data
+      lastName: addressData.lastName || addressData.customerLastName || "",    // Get from address or customer data
+      address: addressData.address,
+      address2: addressData.address2 || "",
+      city: addressData.city,
+      stateCode: addressData.stateCode,
+      zipCode: addressData.zipCode,
+      countryCode: addressData.countryCode,
+      isDefault: addressData.isDefault || false
+    };
+    
+    logger.info(`Updating address ${addressId} for customer ${customerId}:`, JSON.stringify(payload, null, 2));
     
     const response = await axios.put(
       `https://api.commerce7.com/v1/customer/${customerId}/address/${addressId}`,
-      addressData,
+      payload,
       authConfig
     );
     
@@ -561,36 +605,43 @@ async function updateCustomerAddress(customerId, addressId, addressData) {
  * @returns {Promise<Object>} - Created club membership
  */
 async function createClubMembership(customerId, membershipData) {
-  try {
-    const payload = {
-      clubId: membershipData.clubId,
-      status: 'Pending',
-      deliveryOption: membershipData.deliveryMethod === 'pickup' ? 'Pickup' : 'Ship',
-      metaData: {
-        source: 'chatbot_signup'
+    try {
+      // Create a date that's 1 minute in the past to avoid any timing issues
+      const safeSignupDate = new Date();
+      safeSignupDate.setMinutes(safeSignupDate.getMinutes() - 1);
+  
+      const payload = {
+        clubId: membershipData.clubId,
+        customerId: customerId,
+        orderDeliveryMethod: membershipData.deliveryMethod === 'pickup' ? 'Pickup' : 'Ship',
+        signupDate: safeSignupDate.toISOString(), // Use a date slightly in the past
+        
+        // Add pickup inventory location ID when delivery method is Pickup
+        ...(membershipData.deliveryMethod === 'pickup' && {
+          pickupInventoryLocationId: 'e75bfc54-009d-43db-8ed7-113158cce63e' // Use the inventory ID from the debug message
+        })
+      };
+      
+      logger.info(`Creating club membership for customer ${customerId}:`, JSON.stringify(payload, null, 2));
+      
+      const response = await axios.post(
+        `https://api.commerce7.com/v1/club-membership`,
+        payload,
+        authConfig
+      );
+      
+      return response.data;
+    } catch (error) {
+      logger.error(`Error creating club membership for customer ${customerId}:`, error.message);
+      
+      // Log detailed error information
+      if (error.response && error.response.data) {
+        logger.error('Error details:', JSON.stringify(error.response.data, null, 2));
       }
-    };
-    
-    logger.info(`Creating club membership for customer ${customerId}:`, JSON.stringify(payload, null, 2));
-    
-    const response = await axios.post(
-      `https://api.commerce7.com/v1/customer/${customerId}/club-membership`,
-      payload,
-      authConfig
-    );
-    
-    return response.data;
-  } catch (error) {
-    logger.error(`Error creating club membership for customer ${customerId}:`, error.message);
-    
-    // Log detailed error information
-    if (error.response && error.response.data) {
-      logger.error('Error details:', JSON.stringify(error.response.data, null, 2));
+      
+      throw error;
     }
-    
-    throw error;
   }
-}
 
 // ✅ GET a specific club by ID
 router.get('/club/:id', async (req, res) => {

@@ -313,35 +313,42 @@ async function updateCustomerAddress(customerId, addressId, addressData) {
  * @returns {Promise<Object>} - Created club membership
  */
 async function createClubMembership(customerId, membershipData) {
-  try {
-    const payload = {
-      clubId: membershipData.clubId,
-      status: 'Pending',
-      deliveryOption: membershipData.deliveryMethod === 'pickup' ? 'Pickup' : 'Ship',
-      metaData: {
-        source: 'chatbot_signup'
+    try {
+      // Create a date that's 1 minute in the past to avoid any timing issues
+      const safeSignupDate = new Date();
+      safeSignupDate.setMinutes(safeSignupDate.getMinutes() - 1);
+  
+      const payload = {
+        clubId: membershipData.clubId,
+        customerId: customerId,
+        orderDeliveryMethod: membershipData.deliveryMethod === 'pickup' ? 'Pickup' : 'Ship',
+        signupDate: safeSignupDate.toISOString(), // Use a date slightly in the past
+        
+        // Add pickup inventory location ID when delivery method is Pickup
+        ...(membershipData.deliveryMethod === 'pickup' && {
+          pickupInventoryLocationId: 'e75bfc54-009d-43db-8ed7-113158cce63e' // Use the inventory ID from the debug message
+        })
+      };
+      
+      logger.info(`Creating club membership for customer ${customerId}:`, JSON.stringify(payload, null, 2));
+      
+      const response = await axios.post(
+        `https://api.commerce7.com/v1/club-membership`,
+        payload,
+        authConfig
+      );
+      
+      return response.data;
+    } catch (error) {
+      logger.error(`Error creating club membership for customer ${customerId}:`, error.message);
+      
+      // Log detailed error information
+      if (error.response && error.response.data) {
+        logger.error('Error details:', JSON.stringify(error.response.data, null, 2));
       }
-    };
-    
-    logger.info(`Creating club membership for customer ${customerId}:`, JSON.stringify(payload, null, 2));
-    
-    const response = await axios.post(
-      `https://api.commerce7.com/v1/customer/${customerId}/club-membership`,
-      payload,
-      authConfig
-    );
-    
-    return response.data;
-  } catch (error) {
-    logger.error(`Error creating club membership for customer ${customerId}:`, error.message);
-    
-    // Log detailed error information
-    if (error.response && error.response.data) {
-      logger.error('Error details:', JSON.stringify(error.response.data, null, 2));
+      
+      throw error;
     }
-    
-    throw error;
   }
-}
 
 module.exports = router;
